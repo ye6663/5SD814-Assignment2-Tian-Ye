@@ -7,7 +7,8 @@ enum class RenderCommandType
 {
     Star,
     Asteroid,
-    Player
+    Player,
+    Bullet
 };
 
 struct RenderCommand
@@ -18,4 +19,6 @@ struct RenderCommand
     float rotation;
     Color color;
     int layer;
+
+    Texture2D texture;
 };

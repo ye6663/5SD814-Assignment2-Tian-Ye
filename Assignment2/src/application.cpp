@@ -55,6 +55,9 @@ void Application::update()
     // Update asteroid rotation
     m_grid.updateAsteroids();
 
+    // Update bullets
+    updateBullets();
+
     // Collect rendering commands
     collectRenderCommands();
 }
@@ -62,9 +65,15 @@ void Application::update()
 void Application::processInput()
 {
     // Player control
-    if (IsKeyDown(KEY_W)) m_player.applyThrust();
-    if (IsKeyDown(KEY_A)) m_player.rotateLeft();
-    if (IsKeyDown(KEY_D)) m_player.rotateRight();
+    if (IsKeyDown(KEY_W) || IsKeyDown(KEY_UP)) m_player.applyThrust();
+    if (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT)) m_player.rotateLeft();
+    if (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT)) m_player.rotateRight();
+
+    // Shoot bullets
+    if (IsKeyDown(KEY_SPACE))
+    {
+        m_player.shoot();
+    }
 
     // Switch debugging display
     if (IsKeyPressed(KEY_F1)) m_showDebug = !m_showDebug;
@@ -73,6 +82,67 @@ void Application::processInput()
 void Application::updateCamera()
 {
     m_camera.update(m_player.getPosition());
+}
+
+void Application::updateBullets()
+{
+    auto& bullets = m_player.getBullets();
+
+    // Update bullet position and remove bullets that exceed the distance
+    for (auto it = bullets.begin(); it != bullets.end(); )
+    {
+        if (!it->update()) // If update returns false, it means the bullet should be destroyed
+        {
+            it = bullets.erase(it);
+        }
+        else
+        {
+            ++it;
+        }
+    }
+
+    // Detecting collisions between bullets and stars
+    // checkBulletCollisions();
+}
+
+void Application::checkBulletCollisions()
+{
+    auto& bullets = m_player.getBullets();
+    const auto& stars = m_starfield.getStars();
+
+    // Wide phase collision detection: first check which bullets may collide with stars
+    for (auto bulletIt = bullets.begin(); bulletIt != bullets.end(); )
+    {
+        bool bulletDestroyed = false;
+        Rectangle bulletRect = bulletIt->getCollisionRect();
+
+        // Narrow phase collision detection: precise detection of collisions with stars
+        for (const auto& star : stars)
+        {
+            // Create collision rectangles for stars
+            Rectangle starRect = {
+                star.position.x - star.size / 2,
+                star.position.y - star.size / 2,
+                star.size,
+                star.size
+            };
+
+            if (CheckCollisionRecs(bulletRect, starRect))
+            {
+                bulletDestroyed = true;
+                break; // The bullet disappears when it hits a star, there is no need to continue detecting other stars
+            }
+        }
+
+        if (bulletDestroyed)
+        {
+            bulletIt = bullets.erase(bulletIt);
+        }
+        else
+        {
+            ++bulletIt;
+        }
+    }
 }
 
 void Application::collectRenderCommands()
@@ -98,6 +168,21 @@ void Application::collectRenderCommands()
         cmd.size = asteroid.size;
         cmd.color = asteroid.color;
         cmd.layer = asteroid.layer; // Set hierarchy based on size
+
+        m_renderCommands.push_back(cmd);
+    }
+
+    // Add bullets to the rendering queue
+    for (const auto& bullet : m_player.getBullets())
+    {
+        RenderCommand cmd;
+        cmd.type = RenderCommandType::Bullet;
+        cmd.position = bullet.getPosition();
+        cmd.rotation = bullet.getRotation(); // Angle calculated using direction
+        cmd.size = bullet.getSize();
+        cmd.color = WHITE; // The bullet color and texture will cover this
+        cmd.layer = 5; // Bullet level
+        cmd.texture = bullet.getTexture(); // Bullet texture
 
         m_renderCommands.push_back(cmd);
     }
@@ -167,27 +252,43 @@ void Application::render()
             break;
 
         case RenderCommandType::Player:
+        {
             // The player is always in the center of the camera frame
             Vector2 center = {
                 cameraFrame.x + cameraFrame.width / 2,
                 cameraFrame.y + cameraFrame.height / 2
             };
 
-            Vector2 front = {
-                center.x + cosf(cmd.rotation) * scaledSize.x,
-                center.y + sinf(cmd.rotation) * scaledSize.y
-            };
-            Vector2 left = {
-                center.x + cosf(cmd.rotation + 2.5f) * scaledSize.x,
-                center.y + sinf(cmd.rotation + 2.5f) * scaledSize.y
-            };
-            Vector2 right = {
-                center.x + cosf(cmd.rotation - 2.5f) * scaledSize.x,
-                center.y + sinf(cmd.rotation - 2.5f) * scaledSize.y
-            };
+            // Get player texture
+            Texture2D playerTexture = m_player.getTexture();
+            Vector2 textureSize = m_player.getSize();
 
-            DrawTriangle(front, right, left, cmd.color);
+            // Draw rotated textures
+            Rectangle sourceRec = { 0, 0, (float)playerTexture.width, (float)playerTexture.height };
+            Rectangle destRec = {
+                center.x,
+                center.y,
+                textureSize.x,
+                textureSize.y
+            };
+            Vector2 origin = { textureSize.x / 2, textureSize.y / 2 }; // Rotate the origin as the center
+            float rotationDegrees = cmd.rotation * RAD2DEG + 90;
+
+            DrawTexturePro(playerTexture, sourceRec, destRec, origin, rotationDegrees, WHITE);
             break;
+        }
+
+        case RenderCommandType::Bullet:
+        {
+            // Draw bullet texture
+            Rectangle sourceRec = { 0, 0, (float)cmd.texture.width, (float)cmd.texture.height };
+            Rectangle destRec = { screenPos.x, screenPos.y, scaledSize.x, scaledSize.y };
+            Vector2 origin = { scaledSize.x / 2, scaledSize.y / 2 };
+            float rotationDegrees = cmd.rotation * RAD2DEG + 90;
+
+            DrawTexturePro(cmd.texture, sourceRec, destRec, origin, rotationDegrees, WHITE);
+            break;
+        }
         }
     }
 
@@ -209,5 +310,5 @@ void Application::renderDebugInfo()
         m_player.getPosition().y), 10, 60, 20, GRAY);
 
     // Display control prompts
-    DrawText("Controls: W - Thrust, A/D - Rotate, F1 - Toggle Debug", 10, m_height - 30, 20, GRAY);
+    DrawText("Controls: W/UP - Thrust, A/D/LEFT/RIGHT - Rotate, SPACE - Shoot, F1 - Toggle Debug", 10, m_height - 30, 20, GRAY);
 }

@@ -39,4 +39,7 @@ private:
     void updateCamera();
     void collectRenderCommands();
     void renderDebugInfo();
+
+    void updateBullets(); // Update bullet logic
+    void checkBulletCollisions(); // Detecting bullet collisions
 };

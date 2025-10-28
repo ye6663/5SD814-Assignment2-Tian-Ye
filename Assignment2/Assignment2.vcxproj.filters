@@ -39,6 +39,9 @@
     <ClCompile Include="src\starfield.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="src\bullet.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\application.hpp">
@@ -63,6 +66,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="include\starfield.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="include\bullet.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

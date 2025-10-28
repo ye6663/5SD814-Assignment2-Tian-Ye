@@ -146,6 +146,7 @@
   <ItemGroup>
     <ClCompile Include="src\application.cpp" />
     <ClCompile Include="src\asteroid.cpp" />
+    <ClCompile Include="src\bullet.cpp" />
     <ClCompile Include="src\game_camera.cpp" />
     <ClCompile Include="src\grid.cpp" />
     <ClCompile Include="src\main.cpp" />
@@ -156,6 +157,7 @@
   <ItemGroup>
     <ClInclude Include="include\application.hpp" />
     <ClInclude Include="include\asteroid.hpp" />
+    <ClInclude Include="include\bullet.hpp" />
     <ClInclude Include="include\game_camera.hpp" />
     <ClInclude Include="include\grid.hpp" />
     <ClInclude Include="include\math_utils.hpp" />

@@ -10,7 +10,7 @@ class Starfield
 public:
     void initialize(int worldWidth, int worldHeight);
     void addRenderCommands(std::vector<RenderCommand>& commands, const GameCamera& camera);
-    
+
 private:
     static const int STAR_COUNT = 1000;
     
@@ -25,4 +25,7 @@ private:
     std::vector<Star> m_stars;
     int m_screenWidth = 0;
     int m_screenHeight = 0;
+
+public:
+    const std::vector<Star>& getStars() const { return m_stars; }
 };

@@ -7,8 +7,22 @@
 void Player::initialize(Vector2 position)
 {
     m_position = position;
-    m_rotation = 0;
+    m_rotation = -PI / 2;
     m_velocity = { 0, 0 };
+
+    m_texture = LoadTexture("assets/player_plane.png");
+    float scale = 0.15f;
+    m_size = {
+        static_cast<float>(m_texture.width) * scale,
+        static_cast<float>(m_texture.height) * scale
+    };
+
+    m_bullet_texture = LoadTexture("assets/bullet.png");
+}
+
+void Player::shutdown()
+{
+    UnloadTexture(m_texture);
 }
 
 void Player::setViewParameter(Vector2 worldSize, Rectangle cameraFrame)
@@ -54,4 +68,18 @@ void Player::rotateLeft()
 void Player::rotateRight()
 {
     m_rotation += ROTATION_SPEED * GetFrameTime();
+}
+
+void Player::shoot()
+{
+    double currentTime = GetTime();
+    if (currentTime - m_lastShotTime < FIRE_RATE) {
+        return;
+    }
+    m_lastShotTime = currentTime;
+
+    Bullet bullet;
+    Vector2 direction = { cosf(m_rotation), sinf(m_rotation) };
+    bullet.initialize(m_position, direction, BULLET_SPEED, BULLET_MAX_DISTANCE, m_bullet_texture);
+    m_bullets.push_back(bullet);
 }
