@@ -16,8 +16,8 @@ bool Application::initialize(int width, int height)
     // Initialize World Grid (10x10 sections，Each 1000x1000 pixel)
     m_grid.initialize(10, 10, 1000, 1000, m_width, m_height);
 
-    // Generate 6000 asteroids
-    m_totalAsteroids = 6000;
+    // Generate 2000 asteroids
+    m_totalAsteroids = 2000;
     m_grid.generateAsteroids(m_totalAsteroids);
 
     // Initialize the player's position at the center of the world
@@ -32,6 +32,11 @@ bool Application::initialize(int width, int height)
 
     // Initialize starfield
     m_starfield.initialize((int)m_worldSize.x, (int)m_worldSize.y); // Enter world size
+
+    // 初始化事件系统
+    m_audioSystem.initialize();
+    m_scoreSystem.initialize();
+    m_gameplaySystem.initialize();
 
     std::cout << "Application initialized successfully" << std::endl;
     return true;
@@ -102,13 +107,15 @@ void Application::updateBullets()
     }
 
     // Detecting collisions between bullets and stars
-    // checkBulletCollisions();
+    checkBulletCollisions();
 }
 
 void Application::checkBulletCollisions()
 {
     auto& bullets = m_player.getBullets();
-    const auto& stars = m_starfield.getStars();
+    // const auto& stars = m_starfield.getStars();
+    Rectangle frustum = m_camera.getFrustum();
+    auto visibleAsteroids = m_grid.getVisibleAsteroids(frustum);
 
     // Wide phase collision detection: first check which bullets may collide with stars
     for (auto bulletIt = bullets.begin(); bulletIt != bullets.end(); )
@@ -117,18 +124,28 @@ void Application::checkBulletCollisions()
         Rectangle bulletRect = bulletIt->getCollisionRect();
 
         // Narrow phase collision detection: precise detection of collisions with stars
-        for (const auto& star : stars)
+        for (const auto& asteroid : visibleAsteroids)
         {
             // Create collision rectangles for stars
-            Rectangle starRect = {
-                star.position.x - star.size / 2,
-                star.position.y - star.size / 2,
-                star.size,
-                star.size
+            Rectangle asteroidRect = {
+                asteroid.position.x - asteroid.size.x / 2,
+                asteroid.position.y - asteroid.size.y / 2,
+                asteroid.size.x,
+                asteroid.size.y
             };
 
-            if (CheckCollisionRecs(bulletRect, starRect))
+            if (CheckCollisionRecs(bulletRect, asteroidRect))
             {
+                // 发布碰撞事件而不是直接处理
+                CollisionData collisionData(
+                    EntityType::Bullet,
+                    EntityType::Asteroid,
+                    bulletIt->getPosition(),
+                    (void*)&(*bulletIt),
+                    (void*)&asteroid
+                );
+                EventSystem::getInstance().publish(EventType::Collision, collisionData);
+
                 bulletDestroyed = true;
                 break; // The bullet disappears when it hits a star, there is no need to continue detecting other stars
             }
@@ -143,6 +160,57 @@ void Application::checkBulletCollisions()
             ++bulletIt;
         }
     }
+
+    // 检查玩家与小行星碰撞
+    Rectangle playerRect = {
+        m_player.getPosition().x - m_player.getSize().x / 2,
+        m_player.getPosition().y - m_player.getSize().y / 2,
+        m_player.getSize().x,
+        m_player.getSize().y
+    };
+
+    for (const auto& asteroid : visibleAsteroids) {
+        Rectangle asteroidRect = {
+            asteroid.position.x - asteroid.size.x / 2,
+            asteroid.position.y - asteroid.size.y / 2,
+            asteroid.size.x,
+            asteroid.size.y
+        };
+
+        if (CheckCollisionRecs(playerRect, asteroidRect)) {
+            /*
+            // 发布玩家被击中事件
+            PlayerHitData hitData(
+                m_player.getPosition(),
+                1, // 伤害值
+                0, // 剩余护盾（暂时为0）
+                0  // 剩余生命（暂时为0）
+            );
+
+            EventSystem::getInstance().publish(EventType::PlayerHit, hitData);
+            */
+
+            // 同时发布碰撞事件
+            CollisionData collisionData(
+                EntityType::Player,
+                EntityType::Asteroid,
+                m_player.getPosition(),
+                (void*)&m_player,
+                (void*)&asteroid
+            );
+
+            EventSystem::getInstance().publish(EventType::Collision, collisionData);
+
+            break; // 一次只处理一个碰撞
+        }
+    }
+
+    /*
+    // 处理新生成的小行星
+    auto newAsteroids = m_gameplaySystem.getPendingAsteroids();
+    if (!newAsteroids.empty()) {
+    }
+    */
 }
 
 void Application::collectRenderCommands()
@@ -308,6 +376,8 @@ void Application::renderDebugInfo()
     DrawText(TextFormat("Position: (%.1f, %.1f)",
         m_player.getPosition().x,
         m_player.getPosition().y), 10, 60, 20, GRAY);
+
+    DrawText(TextFormat("Score: %d", m_scoreSystem.getScore()), m_width / 2 - 50, 10, 20, RED); // 分数显示
 
     // Display control prompts
     DrawText("Controls: W/UP - Thrust, A/D/LEFT/RIGHT - Rotate, SPACE - Shoot, F1 - Toggle Debug", 10, m_height - 30, 20, GRAY);

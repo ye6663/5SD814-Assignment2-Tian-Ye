@@ -6,6 +6,9 @@
 #include "grid.hpp"
 #include "starfield.hpp"
 #include "render_command.hpp"
+#include "audio_system.hpp"
+#include "score_system.hpp"
+#include "gameplay_system.hpp"
 #include <vector>
 
 class Application
@@ -42,4 +45,9 @@ private:
 
     void updateBullets(); // Update bullet logic
     void checkBulletCollisions(); // Detecting bullet collisions
+
+    // 事件系统
+    AudioSystem m_audioSystem;
+    ScoreSystem m_scoreSystem;
+    GameplaySystem m_gameplaySystem;
 };

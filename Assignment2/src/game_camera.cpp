@@ -12,10 +12,10 @@ void GameCamera::initialize(Vector2 position, Vector2 viewportSize, Vector2 worl
     m_screenSize = screenSize;
 
     // Initialize the camera frame to the center of the screen, with half the viewport size
-    m_cameraFrame.width = m_viewportSize.x / 2;
-    m_cameraFrame.height = m_viewportSize.y / 2;
-    m_cameraFrame.x = (m_screenSize.x - m_cameraFrame.width) / 2;
-    m_cameraFrame.y = (m_screenSize.y - m_cameraFrame.height) / 2;
+    m_cameraFrame.width = m_viewportSize.x;// / 2;
+    m_cameraFrame.height = m_viewportSize.y;// / 2;
+    m_cameraFrame.x = (m_screenSize.x - m_cameraFrame.width);// / 2;
+    m_cameraFrame.y = (m_screenSize.y - m_cameraFrame.height);// / 2;
 
     // Calculate the initial frustum (centered around the camera)
     m_frustum.x = m_position.x - m_viewportSize.x / 2;
@@ -95,6 +95,7 @@ void GameCamera::clampToWorldBounds()
 
 void GameCamera::renderDebug() const
 {
+    /*
     // Draw the camera frame on the screen
     DrawRectangleLinesEx(m_cameraFrame, 1.0f, GREEN);
 
@@ -108,4 +109,5 @@ void GameCamera::renderDebug() const
         (int)m_cameraFrame.x + 160, (int)m_cameraFrame.y - 13, 11, GREEN);
     DrawText(TextFormat("World Camera: (%.0f, %.0f)", m_position.x, m_position.y),
         (int)m_cameraFrame.x + 300, (int)m_cameraFrame.y - 13, 11, GREEN);
+    */
 }

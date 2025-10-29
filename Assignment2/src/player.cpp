@@ -1,6 +1,7 @@
 // player.cpp
 
 #include "player.hpp"
+#include "event_system.hpp"
 #include <raylib.h>
 #include <cmath>
 
@@ -82,4 +83,7 @@ void Player::shoot()
     Vector2 direction = { cosf(m_rotation), sinf(m_rotation) };
     bullet.initialize(m_position, direction, BULLET_SPEED, BULLET_MAX_DISTANCE, m_bullet_texture);
     m_bullets.push_back(bullet);
+
+    // 发布射击事件
+    EventSystem::getInstance().publish(EventType::PlayerShoot);
 }
