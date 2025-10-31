@@ -9,6 +9,9 @@
 class GameplaySystem {
 public:
     void initialize() {
+        EventSystem::getInstance().subscribe(EventType::GameStart,
+            [this](const std::any& data) { onGameStart(); });
+
         EventSystem::getInstance().subscribe(EventType::Collision,
             [this](const std::any& data) { onCollision(data); });
 
@@ -28,6 +31,12 @@ public:
     }
 
 private:
+    void onGameStart() {
+        m_playerLives = 10;
+        m_playerShields = 0;
+        m_isGameOver = false;
+    }
+
     void onCollision(const std::any& data) {
         try {
             auto collisionData = std::any_cast<CollisionData>(data);
@@ -81,8 +90,13 @@ private:
 
     void handlePlayerAsteroidCollision(const CollisionData& collisionData) {
         // std::cout << "Gameplay: Player hit asteroid!" << std::endl;
+        if (m_isGameOver) {
+            return;
+        }
+
         EventSystem::getInstance().publish(EventType::PlayerHit);
         // 可以在这里处理玩家生命值减少等逻辑
+        playerHit();
     }
 
     int determineAsteroidSize(const Asteroid& asteroid) {
@@ -127,15 +141,17 @@ private:
         }
     }
 
-    /*
     void playerHit() {
         try {
+            if (m_isGameOver) {
+                return;
+            }
             if (m_playerShields > 0) {
                 // 先扣除护盾
                 m_playerShields -=  10; // 假设1点伤害扣除10点护盾
                 if (m_playerShields < 0) m_playerShields = 0;
 
-                std::cout << "Player shield hit! Remaining: " << m_playerShields << std::endl;
+                // std::cout << "Player shield hit! Remaining: " << m_playerShields << std::endl;
             }
             else {
                 // 护盾为0时扣除生命
@@ -156,11 +172,10 @@ private:
             std::cout << "GameplaySystem: Invalid player hit data" << std::endl;
         }
     }
-    */
-
+  
     std::vector<Asteroid> m_pendingAsteroids;
 
-    int m_playerLives;
-    int m_playerShields;
-    bool m_isGameOver;
+    int m_playerLives = 10;
+    int m_playerShields = 0;
+    bool m_isGameOver = false;
 };

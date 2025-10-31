@@ -33,10 +33,24 @@ bool Application::initialize(int width, int height)
     // Initialize starfield
     m_starfield.initialize((int)m_worldSize.x, (int)m_worldSize.y); // Enter world size
 
-    // 初始化事件系统
+    // Initialize event system
     m_audioSystem.initialize();
     m_scoreSystem.initialize();
     m_gameplaySystem.initialize();
+
+    // Initialize main menu
+    m_mainMenu.initialize();
+    m_mainMenu.setStartCallback([this]() { startGame(); });
+    m_mainMenu.setExitCallback([this]() { exitGame(); });
+
+    // Initialize game end screen
+    m_gameOverScreen.initialize();
+    m_gameOverScreen.setReturnToMenuCallback([this]() { returnToMainMenu(); });
+    m_gameOverScreen.setRestartCallback([this]() { restartGame(); });
+
+    // Subscription game end event
+    EventSystem::getInstance().subscribe(EventType::GameOver,
+        [this](const std::any& data) { showGameOverScreen(); });
 
     std::cout << "Application initialized successfully" << std::endl;
     return true;
@@ -49,26 +63,38 @@ void Application::shutdown()
 
 void Application::update()
 {
-    processInput();
+    switch (m_currentState) {
+        case GameState::MainMenu:
+            m_mainMenu.update();
+            break;
+        case GameState::Playing:
+            processInput();
 
-    // Update players
-    m_player.update();
+            // Update players
+            m_player.update();
 
-    // Update camera to follow players
-    updateCamera();
+            // Update camera to follow players
+            updateCamera();
 
-    // Update asteroid rotation
-    m_grid.updateAsteroids();
+            // Update asteroid rotation
+            m_grid.updateAsteroids();
 
-    // Update bullets
-    updateBullets();
+            // Update bullets
+            updateBullets();
 
-    // Collect rendering commands
-    collectRenderCommands();
+            // Collect rendering commands
+            collectRenderCommands();
+            break;
+        case GameState::GameOver:
+            m_gameOverScreen.update();
+            break;
+    }
 }
 
 void Application::processInput()
 {
+    if (m_currentState != GameState::Playing) return;
+
     // Player control
     if (IsKeyDown(KEY_W) || IsKeyDown(KEY_UP)) m_player.applyThrust();
     if (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT)) m_player.rotateLeft();
@@ -136,7 +162,7 @@ void Application::checkBulletCollisions()
 
             if (CheckCollisionRecs(bulletRect, asteroidRect))
             {
-                // 发布碰撞事件而不是直接处理
+                // Publish collision events
                 CollisionData collisionData(
                     EntityType::Bullet,
                     EntityType::Asteroid,
@@ -161,7 +187,7 @@ void Application::checkBulletCollisions()
         }
     }
 
-    // 检查玩家与小行星碰撞
+    // Check for collisions between players and asteroids
     Rectangle playerRect = {
         m_player.getPosition().x - m_player.getSize().x / 2,
         m_player.getPosition().y - m_player.getSize().y / 2,
@@ -179,18 +205,18 @@ void Application::checkBulletCollisions()
 
         if (CheckCollisionRecs(playerRect, asteroidRect)) {
             /*
-            // 发布玩家被击中事件
+            // Publish player hit event
             PlayerHitData hitData(
                 m_player.getPosition(),
-                1, // 伤害值
-                0, // 剩余护盾（暂时为0）
-                0  // 剩余生命（暂时为0）
+                1, // Damage value
+                0, // Remaining Shield (temporarily 0)
+                0  // Remaining life (temporarily 0)
             );
 
             EventSystem::getInstance().publish(EventType::PlayerHit, hitData);
             */
 
-            // 同时发布碰撞事件
+            // Publish collision events
             CollisionData collisionData(
                 EntityType::Player,
                 EntityType::Asteroid,
@@ -201,7 +227,7 @@ void Application::checkBulletCollisions()
 
             EventSystem::getInstance().publish(EventType::Collision, collisionData);
 
-            break; // 一次只处理一个碰撞
+            break; // Only handle one collision at a time
         }
     }
 
@@ -273,7 +299,7 @@ void Application::collectRenderCommands()
         });
 }
 
-void Application::render()
+void Application::renderGame()
 {
     // Obtain camera information
     Vector2 cameraPos = m_camera.getPosition();
@@ -369,6 +395,22 @@ void Application::render()
     }
 }
 
+void Application::render()
+{
+    switch (m_currentState) {
+        case GameState::MainMenu:
+            m_mainMenu.render();
+            break;
+        case GameState::Playing:
+            renderGame();
+            break;
+        case GameState::GameOver:
+            renderGame();
+            m_gameOverScreen.render();
+            break;
+    }
+}
+
 void Application::renderDebugInfo()
 {
     DrawText(TextFormat("FPS: %d", GetFPS()), 10, 10, 20, GRAY);
@@ -377,8 +419,36 @@ void Application::renderDebugInfo()
         m_player.getPosition().x,
         m_player.getPosition().y), 10, 60, 20, GRAY);
 
-    DrawText(TextFormat("Score: %d", m_scoreSystem.getScore()), m_width / 2 - 50, 10, 20, RED); // 分数显示
+    DrawText(TextFormat("Score: %d", m_scoreSystem.getScore()), m_width / 2 - 50, 10, 20, RED); // Score display
 
     // Display control prompts
     DrawText("Controls: W/UP - Thrust, A/D/LEFT/RIGHT - Rotate, SPACE - Shoot, F1 - Toggle Debug", 10, m_height - 30, 20, GRAY);
+}
+
+void Application::startGame() {
+    m_currentState = GameState::Playing;
+    m_scoreSystem.reset();
+
+    // Reset player position
+    m_player.initialize({ m_worldSize.x / 2.0f, m_worldSize.y / 2.0f });
+    m_camera.setPosition(m_player.getPosition());
+
+    EventSystem::getInstance().publish(EventType::GameStart);
+}
+
+void Application::restartGame() {
+    startGame();
+}
+
+void Application::returnToMainMenu() {
+    m_currentState = GameState::MainMenu;
+}
+
+void Application::showGameOverScreen() {
+    m_currentState = GameState::GameOver;
+    m_gameOverScreen.setFinalScore(m_scoreSystem.getScore());
+}
+
+void Application::exitGame() {
+    CloseWindow();
 }

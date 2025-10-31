@@ -148,8 +148,10 @@
     <ClCompile Include="src\asteroid.cpp" />
     <ClCompile Include="src\bullet.cpp" />
     <ClCompile Include="src\game_camera.cpp" />
+    <ClCompile Include="src\game_over_screen.cpp" />
     <ClCompile Include="src\grid.cpp" />
     <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\main_menu.cpp" />
     <ClCompile Include="src\math_utils.cpp" />
     <ClCompile Include="src\player.cpp" />
     <ClCompile Include="src\starfield.cpp" />
@@ -163,7 +165,10 @@
     <ClInclude Include="include\event_types.hpp" />
     <ClInclude Include="include\gameplay_system.hpp" />
     <ClInclude Include="include\game_camera.hpp" />
+    <ClInclude Include="include\game_over_screen.hpp" />
+    <ClInclude Include="include\game_state.hpp" />
     <ClInclude Include="include\grid.hpp" />
+    <ClInclude Include="include\main_menu.hpp" />
     <ClInclude Include="include\math_utils.hpp" />
     <ClInclude Include="include\player.hpp" />
     <ClInclude Include="include\render_command.hpp" />

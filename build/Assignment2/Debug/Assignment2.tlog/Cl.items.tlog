@@ -2,8 +2,10 @@ D:\VsWorkspace\Assignment2\Assignment2\src\application.cpp;D:\VsWorkspace\Assign
 D:\VsWorkspace\Assignment2\Assignment2\src\asteroid.cpp;D:\VsWorkspace\Assignment2\build\Assignment2\Debug\asteroid.obj
 D:\VsWorkspace\Assignment2\Assignment2\src\bullet.cpp;D:\VsWorkspace\Assignment2\build\Assignment2\Debug\bullet.obj
 D:\VsWorkspace\Assignment2\Assignment2\src\game_camera.cpp;D:\VsWorkspace\Assignment2\build\Assignment2\Debug\game_camera.obj
+D:\VsWorkspace\Assignment2\Assignment2\src\game_over_screen.cpp;D:\VsWorkspace\Assignment2\build\Assignment2\Debug\game_over_screen.obj
 D:\VsWorkspace\Assignment2\Assignment2\src\grid.cpp;D:\VsWorkspace\Assignment2\build\Assignment2\Debug\grid.obj
 D:\VsWorkspace\Assignment2\Assignment2\src\main.cpp;D:\VsWorkspace\Assignment2\build\Assignment2\Debug\main.obj
+D:\VsWorkspace\Assignment2\Assignment2\src\main_menu.cpp;D:\VsWorkspace\Assignment2\build\Assignment2\Debug\main_menu.obj
 D:\VsWorkspace\Assignment2\Assignment2\src\math_utils.cpp;D:\VsWorkspace\Assignment2\build\Assignment2\Debug\math_utils.obj
 D:\VsWorkspace\Assignment2\Assignment2\src\player.cpp;D:\VsWorkspace\Assignment2\build\Assignment2\Debug\player.obj
 D:\VsWorkspace\Assignment2\Assignment2\src\starfield.cpp;D:\VsWorkspace\Assignment2\build\Assignment2\Debug\starfield.obj

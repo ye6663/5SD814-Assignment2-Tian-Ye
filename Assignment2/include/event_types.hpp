@@ -7,6 +7,7 @@ enum class EventType {
     PlayerShoot,
     AsteroidDestroyed,
     PlayerHit,
+    GameStart,
     GameOver,
     ScoreChanged
 };

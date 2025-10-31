@@ -9,6 +9,9 @@
 #include "audio_system.hpp"
 #include "score_system.hpp"
 #include "gameplay_system.hpp"
+#include "main_menu.hpp"
+#include "game_over_screen.hpp"
+#include "game_state.hpp"
 #include <vector>
 
 class Application
@@ -17,6 +20,7 @@ public:
     bool initialize(int width, int height);
     void shutdown();
     void update();
+    void renderGame();
     void render();
     
 private:
@@ -50,4 +54,15 @@ private:
     AudioSystem m_audioSystem;
     ScoreSystem m_scoreSystem;
     GameplaySystem m_gameplaySystem;
+
+    // 游戏状态管理
+    GameState m_currentState = GameState::MainMenu;
+    MainMenu m_mainMenu;
+    GameOverScreen m_gameOverScreen;
+    // 游戏状态管理方法
+    void startGame();
+    void restartGame();
+    void returnToMainMenu();
+    void showGameOverScreen();
+    void exitGame();
 };
