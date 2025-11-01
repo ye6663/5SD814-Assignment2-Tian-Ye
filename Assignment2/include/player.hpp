@@ -1,14 +1,16 @@
 // player.hpp
 
 #pragma once
-#include <raylib.h>
+#include "texture_manager.hpp"
 #include "bullet.hpp"
+#include "entity.hpp"
+#include <raylib.h>
 #include <vector>
 
 class Player
 {
 public:
-    void initialize(Vector2 position);
+    void initialize(Vector2 position, TextureManager& textureManager);
     void shutdown();
     void setViewParameter(Vector2 worldSize, Rectangle cameraFrame);
     void update();
@@ -18,17 +20,17 @@ public:
     void rotateRight();
     void shoot();
     
-    Vector2 getPosition() const { return m_position; }
-    float getRotation() const { return m_rotation; }
-    Texture2D getTexture() const { return m_texture; }
-    Vector2 getSize() const { return m_size; }
+    Vector2 getPosition() const { return m_entity.get_transform().position; }
+    float getRotation() const { return m_entity.get_transform().rotation; }
+    TextureHandle getTexture() const;
+    Vector2 getSize() const { return m_entity.get_transform().size; }
 
     std::vector<Bullet>& getBullets() { return m_bullets; }
+    Entity& getEntity() { return m_entity; }
     
 private:
-    Vector2 m_position = {0, 0};
+    Entity m_entity;
     Vector2 m_velocity = {0, 0};
-    float m_rotation = 0;
     Vector2 m_worldSize;
     Rectangle m_cameraFrame;
     
@@ -41,8 +43,8 @@ private:
     const float BULLET_MAX_DISTANCE = 3000.0f; // Maximum distance of bullets
     const double FIRE_RATE = 0.2;
 
-    Texture2D m_texture;
-    Vector2 m_size = { 0, 0 };
+    TextureManager* m_textureManager;
+    Entity m_bullet_entity;
     Texture2D m_bullet_texture;
     double m_lastShotTime = 0.0;
     std::vector<Bullet> m_bullets;

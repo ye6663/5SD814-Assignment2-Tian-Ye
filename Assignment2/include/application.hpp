@@ -12,6 +12,7 @@
 #include "main_menu.hpp"
 #include "game_over_screen.hpp"
 #include "game_state.hpp"
+#include "texture_manager.hpp"
 #include <vector>
 
 class Application
@@ -65,4 +66,6 @@ private:
     void returnToMainMenu();
     void showGameOverScreen();
     void exitGame();
+
+    TextureManager m_textureManager;
 };

@@ -1,14 +1,15 @@
 // render_command.hpp
 
 #pragma once
+#include "sprite.hpp"
+#include "transform.hpp"
 #include <raylib.h>
 
 enum class RenderCommandType
 {
     Star,
     Asteroid,
-    Player,
-    Bullet
+    Sprite
 };
 
 struct RenderCommand
@@ -21,4 +22,6 @@ struct RenderCommand
     int layer;
 
     Texture2D texture;
+    const Sprite* sprite = nullptr;
+    const transform* transform = nullptr;
 };

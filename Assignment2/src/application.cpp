@@ -11,6 +11,10 @@ bool Application::initialize(int width, int height)
     this->m_width = width;
     this->m_height = height;
 
+    if (!m_textureManager.load_manifest("assets/manifest.txt")) {
+        return false;
+    }
+
     m_worldSize = { 10000, 10000 };
 
     // Initialize World Grid (10x10 sections，Each 1000x1000 pixel)
@@ -21,7 +25,7 @@ bool Application::initialize(int width, int height)
     m_grid.generateAsteroids(m_totalAsteroids);
 
     // Initialize the player's position at the center of the world
-    m_player.initialize({ m_worldSize.x / 2.0f, m_worldSize.y / 2.0f });
+    m_player.initialize({ m_worldSize.x / 2.0f, m_worldSize.y / 2.0f }, m_textureManager);
 
     // Initialize camera
     Vector2 viewportSize = { (float)m_width, (float)m_height };
@@ -59,6 +63,7 @@ bool Application::initialize(int width, int height)
 void Application::shutdown()
 {
     // Clean up resources
+    m_textureManager.release_textures();
 }
 
 void Application::update()
@@ -232,7 +237,7 @@ void Application::checkBulletCollisions()
     }
 
     /*
-    // 处理新生成的小行星
+    // Processing newly generated asteroids
     auto newAsteroids = m_gameplaySystem.getPendingAsteroids();
     if (!newAsteroids.empty()) {
     }
@@ -270,27 +275,24 @@ void Application::collectRenderCommands()
     for (const auto& bullet : m_player.getBullets())
     {
         RenderCommand cmd;
-        cmd.type = RenderCommandType::Bullet;
-        cmd.position = bullet.getPosition();
-        cmd.rotation = bullet.getRotation(); // Angle calculated using direction
-        cmd.size = bullet.getSize();
-        cmd.color = WHITE; // The bullet color and texture will cover this
-        cmd.layer = 5; // Bullet level
-        cmd.texture = bullet.getTexture(); // Bullet texture
-
+        cmd.type = RenderCommandType::Sprite;
+        cmd.layer = bullet.getEntity().get_layer(); // Bullet level
+        cmd.sprite = &bullet.getEntity().get_sprite();
+        cmd.transform = &bullet.getEntity().get_transform();
+        cmd.rotation = bullet.getEntity().get_transform().rotation; // Angle calculated using direction
+        cmd.size = bullet.getEntity().get_transform().size;
         m_renderCommands.push_back(cmd);
     }
 
     // Add players to the rendering queue (top-level)
-    RenderCommand playerCmd;
-    playerCmd.type = RenderCommandType::Player;
-    playerCmd.position = m_player.getPosition();
-    playerCmd.rotation = m_player.getRotation();
-    playerCmd.size = { 30, 30 };
-    playerCmd.color = RED;
-    playerCmd.layer = 10; // The highest level
-
-    m_renderCommands.push_back(playerCmd);
+    RenderCommand spriteCmd;
+    spriteCmd.type = RenderCommandType::Sprite;
+    spriteCmd.layer = m_player.getEntity().get_layer();
+    spriteCmd.sprite = &m_player.getEntity().get_sprite();
+    spriteCmd.transform = &m_player.getEntity().get_transform();
+    spriteCmd.rotation = m_player.getEntity().get_transform().rotation;
+    spriteCmd.size = m_player.getEntity().get_transform().size;
+    m_renderCommands.push_back(spriteCmd);
 
     // Sort rendering commands by hierarchy
     std::sort(m_renderCommands.begin(), m_renderCommands.end(),
@@ -345,44 +347,46 @@ void Application::renderGame()
             );
             break;
 
-        case RenderCommandType::Player:
-        {
-            // The player is always in the center of the camera frame
-            Vector2 center = {
-                cameraFrame.x + cameraFrame.width / 2,
-                cameraFrame.y + cameraFrame.height / 2
-            };
+        case RenderCommandType::Sprite:
+            if (cmd.sprite && cmd.transform) {
+                TextureHandle textureHandle = cmd.sprite->get_texture();
+                Texture2D* texture = m_textureManager.get_texture_from_handle(textureHandle);
+                if (texture && texture->id != 0) {
+                    Vector2 screenPos2;
+                    if (&m_player.getEntity().get_transform() == cmd.transform) {
+                        // Player
+                        screenPos2 = {
+                            cameraFrame.x + cameraFrame.width / 2,
+                            cameraFrame.y + cameraFrame.height / 2
+                        };
+                    }
+                    else {
+                        // Other entity
+                        screenPos2 = {
+                            cameraFrame.x + (cmd.transform->position.x - cameraPos.x + viewportSize.x / 2) * scaleX,
+                            cameraFrame.y + (cmd.transform->position.y - cameraPos.y + viewportSize.y / 2) * scaleY
+                        };
+                    }
 
-            // Get player texture
-            Texture2D playerTexture = m_player.getTexture();
-            Vector2 textureSize = m_player.getSize();
+                    Vector2 scaledSize2 = {
+                        cmd.size.x * scaleX,
+                        cmd.size.y * scaleY
+                    };
 
-            // Draw rotated textures
-            Rectangle sourceRec = { 0, 0, (float)playerTexture.width, (float)playerTexture.height };
-            Rectangle destRec = {
-                center.x,
-                center.y,
-                textureSize.x,
-                textureSize.y
-            };
-            Vector2 origin = { textureSize.x / 2, textureSize.y / 2 }; // Rotate the origin as the center
-            float rotationDegrees = cmd.rotation * RAD2DEG + 90;
-
-            DrawTexturePro(playerTexture, sourceRec, destRec, origin, rotationDegrees, WHITE);
+                    // Draw sprite
+                    Rectangle sourceRec = { 0, 0, (float)texture->width, (float)texture->height };
+                    Rectangle destRec = {
+                        screenPos2.x,
+                        screenPos2.y,
+                        scaledSize2.x,
+                        scaledSize2.y
+                    };
+                    Vector2 origin = { scaledSize2.x / 2, scaledSize2.y / 2 };
+                    float rotationDegrees = cmd.transform->rotation * RAD2DEG + 90;
+                    DrawTexturePro(*texture, sourceRec, destRec, origin, rotationDegrees, cmd.sprite->get_tint());
+                }
+            }
             break;
-        }
-
-        case RenderCommandType::Bullet:
-        {
-            // Draw bullet texture
-            Rectangle sourceRec = { 0, 0, (float)cmd.texture.width, (float)cmd.texture.height };
-            Rectangle destRec = { screenPos.x, screenPos.y, scaledSize.x, scaledSize.y };
-            Vector2 origin = { scaledSize.x / 2, scaledSize.y / 2 };
-            float rotationDegrees = cmd.rotation * RAD2DEG + 90;
-
-            DrawTexturePro(cmd.texture, sourceRec, destRec, origin, rotationDegrees, WHITE);
-            break;
-        }
         }
     }
 
@@ -430,7 +434,7 @@ void Application::startGame() {
     m_scoreSystem.reset();
 
     // Reset player position
-    m_player.initialize({ m_worldSize.x / 2.0f, m_worldSize.y / 2.0f });
+    m_player.initialize({ m_worldSize.x / 2.0f, m_worldSize.y / 2.0f }, m_textureManager);
     m_camera.setPosition(m_player.getPosition());
 
     EventSystem::getInstance().publish(EventType::GameStart);

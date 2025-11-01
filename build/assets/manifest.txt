@@ -1,0 +1,2 @@
+player 	assets/player_plane.png
+bullet	assets/bullet.png

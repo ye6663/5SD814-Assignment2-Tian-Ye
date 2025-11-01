@@ -145,35 +145,49 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\application.cpp" />
+    <ClCompile Include="src\asset_registry.cpp" />
     <ClCompile Include="src\asteroid.cpp" />
     <ClCompile Include="src\bullet.cpp" />
+    <ClCompile Include="src\entity.cpp" />
+    <ClCompile Include="src\filesystem.cpp" />
     <ClCompile Include="src\game_camera.cpp" />
     <ClCompile Include="src\game_over_screen.cpp" />
     <ClCompile Include="src\grid.cpp" />
+    <ClCompile Include="src\hash.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\main_menu.cpp" />
     <ClCompile Include="src\math_utils.cpp" />
     <ClCompile Include="src\player.cpp" />
+    <ClCompile Include="src\sprite.cpp" />
     <ClCompile Include="src\starfield.cpp" />
+    <ClCompile Include="src\texture_manager.cpp" />
+    <ClCompile Include="src\transform.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\application.hpp" />
+    <ClInclude Include="include\asset_registry.hpp" />
     <ClInclude Include="include\asteroid.hpp" />
     <ClInclude Include="include\audio_system.hpp" />
     <ClInclude Include="include\bullet.hpp" />
+    <ClInclude Include="include\entity.hpp" />
     <ClInclude Include="include\event_system.hpp" />
     <ClInclude Include="include\event_types.hpp" />
+    <ClInclude Include="include\filesystem.hpp" />
     <ClInclude Include="include\gameplay_system.hpp" />
     <ClInclude Include="include\game_camera.hpp" />
     <ClInclude Include="include\game_over_screen.hpp" />
     <ClInclude Include="include\game_state.hpp" />
     <ClInclude Include="include\grid.hpp" />
+    <ClInclude Include="include\hash.hpp" />
     <ClInclude Include="include\main_menu.hpp" />
     <ClInclude Include="include\math_utils.hpp" />
     <ClInclude Include="include\player.hpp" />
     <ClInclude Include="include\render_command.hpp" />
     <ClInclude Include="include\score_system.hpp" />
+    <ClInclude Include="include\sprite.hpp" />
     <ClInclude Include="include\starfield.hpp" />
+    <ClInclude Include="include\texture_manager.hpp" />
+    <ClInclude Include="include\transform.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
