@@ -1,12 +1,13 @@
 // game_over_screen.cpp
+
 #include "game_over_screen.hpp"
 #include <iostream>
 
 void GameOverScreen::initialize() {
-    // 加载背景图片（如果有）
+    // Load background image
     // m_background = LoadTexture("assets/game_over_background.png");
 
-    // 初始化按钮位置
+    // Initialization button position
     int screenWidth = GetScreenWidth();
     int screenHeight = GetScreenHeight();
 
@@ -28,11 +29,11 @@ void GameOverScreen::initialize() {
 void GameOverScreen::update() {
     Vector2 mousePos = GetMousePosition();
 
-    // 检查按钮悬停状态
+    // Check the hover status of the button
     m_menuButtonHovered = CheckCollisionPointRec(mousePos, m_menuButton);
     m_restartButtonHovered = CheckCollisionPointRec(mousePos, m_restartButton);
 
-    // 检查按钮点击
+    // Check button click
     if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
         if (m_menuButtonHovered && m_returnToMenuCallback) {
             m_returnToMenuCallback();
@@ -44,20 +45,20 @@ void GameOverScreen::update() {
 }
 
 void GameOverScreen::render() {
-    // 绘制半透明黑色背景
+    // Draw a semi transparent black background
     DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(BLACK, 0.7f));
 
-    // 绘制游戏结束标题
+    // Draw the game ending title
     const char* title = "GAME OVER";
     int titleWidth = MeasureText(title, 50);
     DrawText(title, GetScreenWidth() / 2 - titleWidth / 2, 150, 50, RED);
 
-    // 绘制分数
+    // Draw Score
     std::string scoreText = "FINAL SCORE: " + std::to_string(m_finalScore);
     int scoreWidth = MeasureText(scoreText.c_str(), 30);
     DrawText(scoreText.c_str(), GetScreenWidth() / 2 - scoreWidth / 2, 250, 30, YELLOW);
 
-    // 绘制返回菜单按钮
+    // Draw the return menu button
     Color menuButtonColor = m_menuButtonHovered ? BLUE : DARKBLUE;
     DrawRectangleRec(m_menuButton, menuButtonColor);
     DrawRectangleLinesEx(m_menuButton, 2, WHITE);
@@ -69,7 +70,7 @@ void GameOverScreen::render() {
         (int)(m_menuButton.y + m_menuButton.height / 2 - 10),
         20, WHITE);
 
-    // 绘制重新开始按钮
+    // Draw the restart button
     Color restartButtonColor = m_restartButtonHovered ? GREEN : DARKGREEN;
     DrawRectangleRec(m_restartButton, restartButtonColor);
     DrawRectangleLinesEx(m_restartButton, 2, WHITE);

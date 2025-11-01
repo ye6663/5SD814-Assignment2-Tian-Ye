@@ -18,7 +18,7 @@ bool Application::initialize(int width, int height)
     m_worldSize = { 10000, 10000 };
 
     // Initialize World Grid (10x10 sections£¬Each 1000x1000 pixel)
-    m_grid.initialize(10, 10, 1000, 1000, m_width, m_height);
+    m_grid.initialize(10, 10, 1000, 1000, m_width, m_height, m_textureManager);
 
     // Generate 2000 asteroids
     m_totalAsteroids = 2000;
@@ -141,12 +141,35 @@ void Application::updateBullets()
     checkBulletCollisions();
 }
 
+// #define DEBUG_COLLISION
 void Application::checkBulletCollisions()
 {
     auto& bullets = m_player.getBullets();
     // const auto& stars = m_starfield.getStars();
     Rectangle frustum = m_camera.getFrustum();
     auto visibleAsteroids = m_grid.getVisibleAsteroids(frustum);
+
+#ifdef DEBUG_COLLISION
+    for (const auto& asteroid : visibleAsteroids) {
+        Rectangle asteroidRect = asteroid->getCollisionRect();
+
+        Vector2 cameraPos = m_camera.getPosition();
+        Vector2 viewportSize = m_camera.getViewportSize();
+        Rectangle cameraFrame = m_camera.getCameraFrame();
+
+        float scaleX = cameraFrame.width / viewportSize.x;
+        float scaleY = cameraFrame.height / viewportSize.y;
+
+        Rectangle screenAsteroidRect = {
+            cameraFrame.x + (asteroidRect.x - cameraPos.x + viewportSize.x / 2) * scaleX,
+            cameraFrame.y + (asteroidRect.y - cameraPos.y + viewportSize.y / 2) * scaleY,
+            asteroidRect.width * scaleX,
+            asteroidRect.height * scaleY
+        };
+
+        DrawRectangleLinesEx(screenAsteroidRect, 2, RED);
+    }
+#endif
 
     // Wide phase collision detection: first check which bullets may collide with stars
     for (auto bulletIt = bullets.begin(); bulletIt != bullets.end(); )
@@ -157,13 +180,8 @@ void Application::checkBulletCollisions()
         // Narrow phase collision detection: precise detection of collisions with stars
         for (const auto& asteroid : visibleAsteroids)
         {
-            // Create collision rectangles for stars
-            Rectangle asteroidRect = {
-                asteroid.position.x - asteroid.size.x / 2,
-                asteroid.position.y - asteroid.size.y / 2,
-                asteroid.size.x,
-                asteroid.size.y
-            };
+            if (asteroid->shouldRemove()) continue;
+            Rectangle asteroidRect = asteroid->getCollisionRect();
 
             if (CheckCollisionRecs(bulletRect, asteroidRect))
             {
@@ -173,7 +191,7 @@ void Application::checkBulletCollisions()
                     EntityType::Asteroid,
                     bulletIt->getPosition(),
                     (void*)&(*bulletIt),
-                    (void*)&asteroid
+                    (void*)&(*asteroid)
                 );
                 EventSystem::getInstance().publish(EventType::Collision, collisionData);
 
@@ -192,21 +210,13 @@ void Application::checkBulletCollisions()
         }
     }
 
-    // Check for collisions between players and asteroids
-    Rectangle playerRect = {
-        m_player.getPosition().x - m_player.getSize().x / 2,
-        m_player.getPosition().y - m_player.getSize().y / 2,
-        m_player.getSize().x,
-        m_player.getSize().y
-    };
+    m_grid.removeMarkedAsteroids();
 
+    // Check for collisions between players and asteroids
+    Rectangle playerRect = m_player.getCollisionRect();
     for (const auto& asteroid : visibleAsteroids) {
-        Rectangle asteroidRect = {
-            asteroid.position.x - asteroid.size.x / 2,
-            asteroid.position.y - asteroid.size.y / 2,
-            asteroid.size.x,
-            asteroid.size.y
-        };
+        if (asteroid->shouldRemove()) continue;
+        Rectangle asteroidRect = asteroid->getCollisionRect();
 
         if (CheckCollisionRecs(playerRect, asteroidRect)) {
             /*
@@ -227,9 +237,8 @@ void Application::checkBulletCollisions()
                 EntityType::Asteroid,
                 m_player.getPosition(),
                 (void*)&m_player,
-                (void*)&asteroid
+                (void*)&(*asteroid)
             );
-
             EventSystem::getInstance().publish(EventType::Collision, collisionData);
 
             break; // Only handle one collision at a time
@@ -261,13 +270,12 @@ void Application::collectRenderCommands()
     for (const auto& asteroid : visibleAsteroids)
     {
         RenderCommand cmd;
-        cmd.type = RenderCommandType::Asteroid;
-        cmd.position = asteroid.position;
-        cmd.rotation = asteroid.rotation;
-        cmd.size = asteroid.size;
-        cmd.color = asteroid.color;
-        cmd.layer = asteroid.layer; // Set hierarchy based on size
-
+        cmd.type = RenderCommandType::Sprite;
+        cmd.layer = asteroid->getEntity().get_layer(); // Set hierarchy based on size
+        cmd.sprite = &asteroid->getEntity().get_sprite();
+        cmd.transform = &asteroid->getEntity().get_transform();
+        cmd.rotation = asteroid->getEntity().get_transform().rotation; // Angle calculated using direction
+        cmd.size = asteroid->getEntity().get_transform().size;
         m_renderCommands.push_back(cmd);
     }
 
@@ -330,15 +338,6 @@ void Application::renderGame()
         switch (cmd.type)
         {
         case RenderCommandType::Star:
-            DrawRectanglePro(
-                Rectangle{ screenPos.x, screenPos.y, scaledSize.x, scaledSize.y },
-                { scaledSize.x / 2, scaledSize.y / 2 },
-                cmd.rotation,
-                cmd.color
-            );
-            break;
-
-        case RenderCommandType::Asteroid:
             DrawRectanglePro(
                 Rectangle{ screenPos.x, screenPos.y, scaledSize.x, scaledSize.y },
                 { scaledSize.x / 2, scaledSize.y / 2 },
@@ -432,6 +431,9 @@ void Application::renderDebugInfo()
 void Application::startGame() {
     m_currentState = GameState::Playing;
     m_scoreSystem.reset();
+
+    m_grid.clear();
+    m_grid.generateAsteroids(m_totalAsteroids);
 
     // Reset player position
     m_player.initialize({ m_worldSize.x / 2.0f, m_worldSize.y / 2.0f }, m_textureManager);

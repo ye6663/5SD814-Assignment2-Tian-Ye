@@ -51,16 +51,17 @@ private:
     void updateBullets(); // Update bullet logic
     void checkBulletCollisions(); // Detecting bullet collisions
 
-    // 事件系统
+    // Event system
     AudioSystem m_audioSystem;
     ScoreSystem m_scoreSystem;
     GameplaySystem m_gameplaySystem;
 
-    // 游戏状态管理
+    // Game state management
     GameState m_currentState = GameState::MainMenu;
     MainMenu m_mainMenu;
     GameOverScreen m_gameOverScreen;
-    // 游戏状态管理方法
+
+    // Game state management methods
     void startGame();
     void restartGame();
     void returnToMainMenu();

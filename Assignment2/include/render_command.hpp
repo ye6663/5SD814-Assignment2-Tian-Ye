@@ -8,7 +8,6 @@
 enum class RenderCommandType
 {
     Star,
-    Asteroid,
     Sprite
 };
 

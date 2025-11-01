@@ -42,10 +42,25 @@ Rectangle Bullet::getCollisionRect() const
 {
     Vector2 position = m_entity.get_transform().position;
     Vector2 size = m_entity.get_transform().size;
+    /*
     return Rectangle{
         position.x - size.x / 2,
         position.y - size.y / 2,
         size.x,
         size.y
+    };
+    */
+
+    float collisionScale = 0.4f;
+    Vector2 collisionSize = {
+        size.x * collisionScale,
+        size.y * collisionScale
+    };
+
+    return Rectangle{
+        position.x - collisionSize.x / 2,
+        position.y - collisionSize.y / 2,
+        collisionSize.x,
+        collisionSize.y
     };
 }

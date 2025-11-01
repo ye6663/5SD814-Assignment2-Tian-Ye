@@ -18,18 +18,6 @@ public:
         std::cout << "GameplaySystem initialized" << std::endl;
     }
 
-    // 用于生成新的小行星
-    void spawnAsteroids(const std::vector<Asteroid>& newAsteroids) {
-        m_pendingAsteroids.insert(m_pendingAsteroids.end(),
-            newAsteroids.begin(), newAsteroids.end());
-    }
-
-    std::vector<Asteroid> getPendingAsteroids() {
-        std::vector<Asteroid> result = m_pendingAsteroids;
-        m_pendingAsteroids.clear();
-        return result;
-    }
-
 private:
     void onGameStart() {
         m_playerLives = 10;
@@ -41,7 +29,7 @@ private:
         try {
             auto collisionData = std::any_cast<CollisionData>(data);
 
-            // 处理子弹与小行星碰撞
+            // Dealing with collisions between bullets and asteroids
             if ((collisionData.entityA == EntityType::Bullet &&
                 collisionData.entityB == EntityType::Asteroid) ||
                 (collisionData.entityA == EntityType::Asteroid &&
@@ -49,7 +37,7 @@ private:
 
                 handleBulletAsteroidCollision(collisionData);
             }
-            // 处理玩家与小行星碰撞
+            // Dealing with collisions between players and asteroids
             else if ((collisionData.entityA == EntityType::Player &&
                 collisionData.entityB == EntityType::Asteroid) ||
                 (collisionData.entityA == EntityType::Asteroid &&
@@ -66,7 +54,7 @@ private:
     void handleBulletAsteroidCollision(const CollisionData& collisionData) {
         Asteroid* asteroid = nullptr;
 
-        // 获取小行星指针
+        // Get asteroid pointer
         if (collisionData.entityA == EntityType::Asteroid) {
             asteroid = static_cast<Asteroid*>(collisionData.dataA);
         }
@@ -75,16 +63,13 @@ private:
         }
 
         if (asteroid) {
-            // 根据小行星大小确定分数和分裂逻辑
+            // Determine scores and splitting logic based on asteroid size
             int asteroidSize = determineAsteroidSize(*asteroid);
             int scoreValue = calculateScore(asteroidSize);
 
-            // 发布小行星被摧毁事件
+            // Publish asteroid destruction event
             EventSystem::getInstance().publish(EventType::AsteroidDestroyed,
-                AsteroidDestroyedData(asteroid->position, asteroidSize, scoreValue));
-
-            // 生成更小的小行星
-            spawnSmallerAsteroids(*asteroid, asteroidSize);
+                AsteroidDestroyedData(asteroid->getEntity().get_transform().position, asteroidSize, scoreValue));
         }
     }
 
@@ -95,49 +80,24 @@ private:
         }
 
         EventSystem::getInstance().publish(EventType::PlayerHit);
-        // 可以在这里处理玩家生命值减少等逻辑
         playerHit();
     }
 
     int determineAsteroidSize(const Asteroid& asteroid) {
-        // 根据大小判断小行星类型
-        float avgSize = (asteroid.size.x + asteroid.size.y) / 2.0f;
-        if (avgSize < 30.0f) return 1; // 小
-        else if (avgSize < 50.0f) return 2; // 中
-        else return 3; // 大
+        // Determine the type of asteroid based on its size
+        Vector2 size = asteroid.getEntity().get_transform().size;
+        float avgSize = (size.x + size.y) / 2.0f;
+        if (avgSize > 50.0f) return 3; // big
+        else if (avgSize > 30.0f) return 2; // medium 
+        else return 1; // small
     }
 
     int calculateScore(int asteroidSize) {
         switch (asteroidSize) {
-        case 1: return 100;  // 小行星
-        case 2: return 50;   // 中行星
-        case 3: return 20;   // 大行星
+        case 1: return 2;   // small
+        case 2: return 5;   // medium
+        case 3: return 10;  // big
         default: return 0;
-        }
-    }
-
-    void spawnSmallerAsteroids(const Asteroid& original, int originalSize) {
-        if (originalSize > 1) {
-            int spawnCount = (originalSize == 3) ? 2 : 3; // 大行星分裂成2个中行星，中行星分裂成3个小行星
-
-            for (int i = 0; i < spawnCount; i++) {
-                Asteroid newAsteroid;
-                Vector2 newSize = {
-                    original.size.x * 0.6f,
-                    original.size.y * 0.6f
-                };
-
-                // 在原始位置附近生成
-                Vector2 newPos = {
-                    original.position.x + (float)(rand() % 60 - 30),
-                    original.position.y + (float)(rand() % 60 - 30)
-                };
-
-                newAsteroid.initialize(newPos, newSize, original.rotation,
-                    original.rotationSpeed, original.color, original.layer);
-
-                m_pendingAsteroids.push_back(newAsteroid);
-            }
         }
     }
 
@@ -172,8 +132,6 @@ private:
             std::cout << "GameplaySystem: Invalid player hit data" << std::endl;
         }
     }
-  
-    std::vector<Asteroid> m_pendingAsteroids;
 
     int m_playerLives = 10;
     int m_playerShields = 0;

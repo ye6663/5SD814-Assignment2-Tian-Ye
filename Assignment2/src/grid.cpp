@@ -3,10 +3,12 @@
 #include "grid.hpp"
 #include "game_camera.hpp"
 #include "math_utils.hpp"
+#include "event_system.hpp"
+#include "event_types.hpp"
 #include <raylib.h>
 #include <iostream>
 
-void Grid::initialize(int width, int height, int cellWidth, int cellHeight, int screen_width, int screen_height)
+void Grid::initialize(int width, int height, int cellWidth, int cellHeight, int screen_width, int screen_height, TextureManager& textureManager)
 {
     m_width = width;
     m_height = height;
@@ -15,14 +17,47 @@ void Grid::initialize(int width, int height, int cellWidth, int cellHeight, int 
     m_screen_width = screen_width;
     m_screen_height = screen_height;
 
-    m_cells.resize(width * height);
+    reset();
 
-    std::cout << "Grid initialized: " << width << "x" << height
-        << " (" << width * height << " cells)" << std::endl;
+    this->m_textureManager = &textureManager;
+    auto textureHandle = textureManager.load("asteroid1");
+    if (textureHandle.index != uint16_t(-1)) {
+        m_asteroid1_entity.set_texture(textureHandle);
+        Texture2D* texturePtr = textureManager.get_texture_from_handle(textureHandle);
+        if (texturePtr) {
+            float scale = 0.15f;
+            m_asteroid1_entity.set_size({
+                static_cast<float>(texturePtr->width) * scale,
+                static_cast<float>(texturePtr->height) * scale
+                });
+        }
+    }
+    textureHandle = textureManager.load("asteroid2");
+    if (textureHandle.index != uint16_t(-1)) {
+        m_asteroid2_entity.set_texture(textureHandle);
+
+        Texture2D* texturePtr = textureManager.get_texture_from_handle(textureHandle);
+        if (texturePtr) {
+            float scale = 0.15f;
+            m_asteroid2_entity.set_size({
+                static_cast<float>(texturePtr->width) * scale,
+                static_cast<float>(texturePtr->height) * scale
+                });
+        }
+    }
+
+    EventSystem::getInstance().subscribe(EventType::Collision,
+        [this](const std::any& data) { onCollision(data); });
+
+    std::cout << "Grid initialized: " << width << "x" << height << " (" << width * height << " cells)" << std::endl;
 }
 
 void Grid::generateAsteroids(int count)
 {
+    // Player start position
+    Vector2 playerSpawn = { m_width * m_cellWidth / 2.0f, m_height * m_cellHeight / 2.0f };
+    float safeRadius = 100.0f; // Safety distance
+    float safeRadiusSquared = safeRadius * safeRadius;
     for (int i = 0; i < count; i++)
     {
         Asteroid asteroid;
@@ -32,6 +67,13 @@ void Grid::generateAsteroids(int count)
             (float)MathUtils::random(0, m_width * m_cellWidth),
             (float)MathUtils::random(0, m_height * m_cellHeight)
         };
+
+        float dx = position.x - playerSpawn.x;
+        float dy = position.y - playerSpawn.y;
+        float distanceSquared = dx * dx + dy * dy;
+        if (distanceSquared < safeRadiusSquared) {
+            continue;
+        }
 
         // Random size
         float sizeType = (float)MathUtils::random(0, 3);
@@ -53,7 +95,7 @@ void Grid::generateAsteroids(int count)
 
         // Random rotation and rotation direction
         float rotation = (float)MathUtils::random(0, 360);
-        float rotationSpeed = MathUtils::random(0.2f, 1.0f);
+        float rotationSpeed = MathUtils::random(0.01f, 0.1f);
         if (MathUtils::random(0, 2) < 1.0f) {
             rotationSpeed = -rotationSpeed; // Random clockwise or counter-clockwise
         }
@@ -62,7 +104,12 @@ void Grid::generateAsteroids(int count)
         unsigned char gray = (unsigned char)MathUtils::random(150, 230);
         Color color = { gray, gray, gray, 255 };
 
-        asteroid.initialize(position, size, rotation, rotationSpeed, color, layer);
+        if (MathUtils::random(0, 2) < 1.0f) {
+            asteroid.initialize(position, size, rotation, rotationSpeed, color, layer, m_asteroid1_entity, 3 - layer);
+        }
+        else {
+            asteroid.initialize(position, size, rotation, rotationSpeed, color, layer, m_asteroid2_entity, 3 - layer);
+        }
 
         // Add to corresponding grid cell
         int gridX, gridY;
@@ -89,9 +136,9 @@ void Grid::updateAsteroids()
     }
 }
 
-std::vector<Asteroid> Grid::getVisibleAsteroids(const Rectangle& frustum) const
+std::vector<const Asteroid*> Grid::getVisibleAsteroids(const Rectangle& frustum) const
 {
-    std::vector<Asteroid> result;
+    std::vector<const Asteroid*> result;
 
     // Calculate grid range covered by the frustum
     int startX = std::max(0, static_cast<int>(frustum.x) / m_cellWidth);
@@ -111,16 +158,18 @@ std::vector<Asteroid> Grid::getVisibleAsteroids(const Rectangle& frustum) const
             // Check if each asteroid is within the frustum
             for (const auto& asteroid : cell.asteroids)
             {
+                Vector2 position = asteroid.getEntity().get_transform().position;
+                Vector2 size = asteroid.getEntity().get_transform().size;
                 Rectangle asteroidRect = {
-                    asteroid.position.x - asteroid.size.x / 2,
-                    asteroid.position.y - asteroid.size.y / 2,
-                    asteroid.size.x,
-                    asteroid.size.y
+                    position.x - size.x / 2,
+                    position.y - size.y / 2,
+                    size.x,
+                    size.y
                 };
 
                 if (CheckCollisionRecs(asteroidRect, frustum))
                 {
-                    result.push_back(asteroid);
+                    result.push_back(&asteroid);
                 }
             }
         }
@@ -222,4 +271,55 @@ bool Grid::isCellVisible(int gridX, int gridY, const Rectangle& frustum) const
     };
 
     return CheckCollisionRecs(cellRect, frustum);
+}
+
+void Grid::shrinkAsteroid(Asteroid* asteroid)
+{
+    if (asteroid && asteroid->canShrink()) {
+        asteroid->shrink();
+    }
+}
+
+void Grid::removeMarkedAsteroids()
+{
+    for (auto& cell : m_cells) {
+        cell.asteroids.erase(
+            std::remove_if(cell.asteroids.begin(), cell.asteroids.end(),
+                [](const Asteroid& asteroid) {
+                    return asteroid.shouldRemove();
+                }),
+            cell.asteroids.end()
+        );
+    }
+}
+
+void Grid::onCollision(const std::any& data) {
+    try {
+        auto collisionData = std::any_cast<CollisionData>(data);
+
+        // Dealing with collisions between bullets and asteroids
+        if ((collisionData.entityA == EntityType::Bullet &&
+            collisionData.entityB == EntityType::Asteroid) ||
+            (collisionData.entityA == EntityType::Asteroid &&
+                collisionData.entityB == EntityType::Bullet)) {
+            shrinkAsteroid(static_cast<Asteroid*>(collisionData.dataB));
+        }
+    }
+    catch (const std::bad_any_cast&) {
+        std::cout << "GameplaySystem: Invalid collision data" << std::endl;
+    }
+}
+
+void Grid::reset()
+{
+    m_cells = std::vector<GridCell>(m_width * m_height);
+    std::cout << "Grid reset: " << m_width << "x" << m_height << " (" << m_cells.size() << " cells)" << std::endl;
+}
+
+void Grid::clear()
+{
+    for (auto& cell : m_cells) {
+        cell.asteroids.clear();
+    }
+    std::cout << "Grid cleared: all asteroids removed" << std::endl;
 }

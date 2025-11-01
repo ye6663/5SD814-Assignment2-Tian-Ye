@@ -1,2 +1,4 @@
 player 	assets/player_plane.png
 bullet	assets/bullet.png
+asteroid1	assets/asteroid1.png
+asteroid2	assets/asteroid2.png

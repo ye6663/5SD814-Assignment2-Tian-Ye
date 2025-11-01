@@ -12,7 +12,7 @@ public:
     void addRenderCommands(std::vector<RenderCommand>& commands, const GameCamera& camera);
 
 private:
-    static const int STAR_COUNT = 1000;
+    static const int STAR_COUNT = 1600;
     
     struct Star
     {

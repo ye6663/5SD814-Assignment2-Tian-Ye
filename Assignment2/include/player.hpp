@@ -24,8 +24,8 @@ public:
     float getRotation() const { return m_entity.get_transform().rotation; }
     TextureHandle getTexture() const;
     Vector2 getSize() const { return m_entity.get_transform().size; }
-
     std::vector<Bullet>& getBullets() { return m_bullets; }
+    Rectangle getCollisionRect() const;
     Entity& getEntity() { return m_entity; }
     
 private:

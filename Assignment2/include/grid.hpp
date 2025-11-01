@@ -4,6 +4,7 @@
 #include "asteroid.hpp"
 #include "game_camera.hpp"
 #include <vector>
+#include <any>
 #include <raylib.h>
 
 struct GridCell
@@ -14,12 +15,17 @@ struct GridCell
 class Grid
 {
 public:
-    void initialize(int width, int height, int cellWidth, int cellHeight, int screen_width, int screen_height);
+    void initialize(int width, int height, int cellWidth, int cellHeight, int screen_width, int screen_height, TextureManager& textureManager);
     void generateAsteroids(int count);
     void updateAsteroids();
     
-    std::vector<Asteroid> getVisibleAsteroids(const Rectangle& frustum) const;
-    
+    std::vector<const Asteroid*> getVisibleAsteroids(const Rectangle& frustum) const;
+    void shrinkAsteroid(Asteroid* asteroid);
+    void removeMarkedAsteroids();
+    void onCollision(const std::any& data);
+    void reset();
+    void clear();
+
     void renderDebug(const GameCamera& camera) const;
     
 private:
@@ -37,4 +43,8 @@ private:
     
     // Check if the grid cells are inside the cone of sight
     bool isCellVisible(int gridX, int gridY, const Rectangle& frustum) const;
+
+    TextureManager* m_textureManager;
+    Entity m_asteroid1_entity;
+    Entity m_asteroid2_entity;
 };
