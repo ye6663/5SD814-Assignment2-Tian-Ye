@@ -273,10 +273,22 @@ bool Grid::isCellVisible(int gridX, int gridY, const Rectangle& frustum) const
     return CheckCollisionRecs(cellRect, frustum);
 }
 
-void Grid::shrinkAsteroid(Asteroid* asteroid)
+void Grid::splitAsteroid(Asteroid* asteroid)
 {
-    if (asteroid && asteroid->canShrink()) {
-        asteroid->shrink();
+    if (!asteroid) {
+        return;
+    }
+
+    auto fragments = asteroid->split();
+    for (const auto& fragment : fragments) {
+        Vector2 position = fragment.getEntity().get_transform().position;
+
+        int gridX, gridY;
+        worldToGrid(position, gridX, gridY);
+        if (gridX >= 0 && gridX < m_width && gridY >= 0 && gridY < m_height) {
+            int index = gridY * m_width + gridX;
+            m_cells[index].asteroids.push_back(fragment);
+        }
     }
 }
 
@@ -302,7 +314,13 @@ void Grid::onCollision(const std::any& data) {
             collisionData.entityB == EntityType::Asteroid) ||
             (collisionData.entityA == EntityType::Asteroid &&
                 collisionData.entityB == EntityType::Bullet)) {
-            shrinkAsteroid(static_cast<Asteroid*>(collisionData.dataB));
+            splitAsteroid(static_cast<Asteroid*>(collisionData.dataB));
+        }
+        else if ((collisionData.entityA == EntityType::Player &&
+            collisionData.entityB == EntityType::Asteroid) ||
+            (collisionData.entityA == EntityType::Asteroid &&
+                collisionData.entityB == EntityType::Player)) {
+            splitAsteroid(static_cast<Asteroid*>(collisionData.dataB));
         }
     }
     catch (const std::bad_any_cast&) {

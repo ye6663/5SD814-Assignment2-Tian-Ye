@@ -1,15 +1,18 @@
 // main_menu.cpp
+
 #include "main_menu.hpp"
+#include "math_utils.hpp"
 #include <iostream>
 
 void MainMenu::initialize() {
-    // 加载背景图片
-    // m_background = LoadTexture("assets/menu_background.png");
+    // Load background image
+    m_background = LoadTexture("assets/menu_background.png");
+    m_background2 = LoadTexture("assets/menu_background2.png");
 
-    // 加载字体
+    // Loading fonts
     m_font = GetFontDefault();
 
-    // 初始化按钮位置
+    // Initialization button position
     int screenWidth = GetScreenWidth();
     int screenHeight = GetScreenHeight();
 
@@ -31,11 +34,11 @@ void MainMenu::initialize() {
 void MainMenu::update() {
     Vector2 mousePos = GetMousePosition();
 
-    // 检查按钮悬停状态
+    // Check the hover status of the button
     m_startButtonHovered = CheckCollisionPointRec(mousePos, m_startButton);
     m_exitButtonHovered = CheckCollisionPointRec(mousePos, m_exitButton);
 
-    // 检查按钮点击
+    // Check button click
     if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
         if (m_startButtonHovered && m_startCallback) {
             m_startCallback();
@@ -47,18 +50,38 @@ void MainMenu::update() {
 }
 
 void MainMenu::render() {
-    // 绘制背景
+    // Draw Background
     ClearBackground(BLACK);
 
-    // 如果有背景纹理
+    if ((m_showBackgroundSelect % 2) == 0) {
+        float scaleX = (float)GetScreenWidth() / m_background.width;
+        float scaleY = (float)GetScreenHeight() / m_background.height;
+        float scale = (scaleX > scaleY) ? scaleX : scaleY;
+        float scaledWidth = m_background.width * scale;
+        float scaledHeight = m_background.height * scale;
+        float posX = (GetScreenWidth() - scaledWidth) / 2;
+        float posY = (GetScreenHeight() - scaledHeight) / 2;
+        DrawTextureEx(m_background, { posX, posY }, 0.0f, scale, WHITE);
+    }
+    else {
+        float scaleX = (float)GetScreenWidth() / m_background2.width;
+        float scaleY = (float)GetScreenHeight() / m_background2.height;
+        float scale = (scaleX > scaleY) ? scaleX : scaleY;
+        float scaledWidth = m_background2.width * scale;
+        float scaledHeight = m_background2.height * scale;
+        float posX = (GetScreenWidth() - scaledWidth) / 2;
+        float posY = (GetScreenHeight() - scaledHeight) / 2;
+        DrawTextureEx(m_background2, { posX, posY }, 0.0f, scale, WHITE);
+    }
     // DrawTexture(m_background, 0, 0, WHITE);
 
-    // 绘制标题
+
+    // Draw Title
     const char* title = "ASTEROID FIELD";
     int titleWidth = MeasureText(title, 40);
     DrawText(title, GetScreenWidth() / 2 - titleWidth / 2, 100, 40, WHITE);
 
-    // 绘制开始按钮
+    // Draw Start Button
     Color startButtonColor = m_startButtonHovered ? GREEN : DARKGREEN;
     DrawRectangleRec(m_startButton, startButtonColor);
     DrawRectangleLinesEx(m_startButton, 2, WHITE);
@@ -70,7 +93,7 @@ void MainMenu::render() {
         (int)(m_startButton.y + m_startButton.height / 2 - 10),
         20, WHITE);
 
-    // 绘制退出按钮
+    // Draw exit button
     Color exitButtonColor = m_exitButtonHovered ? RED : GRAY;
     DrawRectangleRec(m_exitButton, exitButtonColor);
     DrawRectangleLinesEx(m_exitButton, 2, WHITE);
@@ -81,4 +104,8 @@ void MainMenu::render() {
         (int)(m_exitButton.x + m_exitButton.width / 2 - exitTextWidth / 2),
         (int)(m_exitButton.y + m_exitButton.height / 2 - 10),
         20, WHITE);
+}
+
+void MainMenu::updateConfig() {
+    m_showBackgroundSelect++;
 }

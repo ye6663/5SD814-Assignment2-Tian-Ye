@@ -1,4 +1,5 @@
 // event_system.hpp
+
 #pragma once
 #include "event_types.hpp"
 #include <functional>
@@ -15,12 +16,12 @@ public:
         return instance;
     }
 
-    // 订阅事件
+    // Subscribe
     void subscribe(EventType type, EventCallback callback) {
         m_listeners[type].push_back(callback);
     }
 
-    // 发布事件
+    // Publish
     void publish(EventType type, const std::any& data = {}) {
         auto it = m_listeners.find(type);
         if (it != m_listeners.end()) {
@@ -30,7 +31,7 @@ public:
         }
     }
 
-    // 清空所有监听器
+    // Clear all listeners
     void clear() {
         m_listeners.clear();
     }

@@ -1,4 +1,5 @@
 // event_types.hpp
+
 #pragma once
 #include <raylib.h>
 
@@ -7,6 +8,8 @@ enum class EventType {
     PlayerShoot,
     AsteroidDestroyed,
     PlayerHit,
+    CollisionAsteroid,
+    HyperspaceJump,
     GameStart,
     GameOver,
     ScoreChanged
@@ -23,7 +26,7 @@ struct CollisionData {
     EntityType entityA;
     EntityType entityB;
     Vector2 position;
-    void* dataA; // 指向碰撞实体的数据
+    void* dataA; // Data pointing to collision entities
     void* dataB;
 
     CollisionData(EntityType a, EntityType b, Vector2 pos, void* da = nullptr, void* db = nullptr)
@@ -34,8 +37,8 @@ struct CollisionData {
 struct PlayerHitData {
     Vector2 position;
     int damage;
-    int remainingShields; // 如果实现了护盾系统
-    int remainingLives;   // 如果实现了生命系统
+    int remainingShields;
+    int remainingLives;
 
     PlayerHitData(Vector2 pos, int dmg = 1, int shields = 0, int lives = 0)
         : position(pos), damage(dmg), remainingShields(shields), remainingLives(lives) {}

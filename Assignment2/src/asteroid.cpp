@@ -1,6 +1,7 @@
 // asteroid.cpp
 
 #include "asteroid.hpp"
+#include "math_utils.hpp"
 
 void Asteroid::initialize(Vector2 pos, Vector2 sz, float rot, float rotSpeed, Color col, int lyr, Entity entity, int generation)
 {
@@ -37,28 +38,49 @@ Rectangle Asteroid::getCollisionRect() const
     };
 }
 
-void Asteroid::shrink()
+std::vector<Asteroid> Asteroid::split()
 {
-    if (!canShrink()) {
-        markForRemoval();
-        return;
+    std::vector<Asteroid> fragments;
+
+    markForRemoval();
+    if (!canSplit()) {
+        return fragments;
     }
 
-    m_generation++;
+    int splitNumber = m_generation == 0 ? 1 : 2;
+    int fragmentCount = splitNumber + MathUtils::random(0, 1); // 分裂数
+    for (int i = 0; i < fragmentCount; i++) {
+        Asteroid fragment;
 
-    Vector2 size = m_entity.get_transform().size;
-    switch (m_generation) {
-    case 1:  // First reduction: Medium
-        m_entity.get_transform().set_size({size.x * 0.6f, size.y * 0.6f});
-        break;
-    case 2:  // Second reduction: Small size
-        m_entity.get_transform().set_size({ size.x * 0.6f, size.y * 0.6f });
-        break;
-    case 3:  // The third time: disappearing
-        markForRemoval();
-        return;
-    default:
-        markForRemoval();
-        return;
+        Vector2 position = m_entity.get_transform().position;
+        float rotation = m_entity.get_transform().rotation;
+        Vector2 size = m_entity.get_transform().size;
+        Vector2 newSize = {
+            size.x * 0.6f,
+            size.y * 0.6f
+        };
+
+        Vector2 newPosition;
+        if (fragmentCount != 1) {
+            // 随机偏移位置
+            float offsetDistance = size.x * 0.4f;
+            float angle = (float)i / fragmentCount * 2 * PI + MathUtils::random(-0.5f, 0.5f);
+            Vector2 offset = {
+                cosf(angle) * offsetDistance,
+                sinf(angle) * offsetDistance
+            };
+            newPosition = {
+                position.x + offset.x,
+                position.y + offset.y
+            };
+        }
+        else {
+            newPosition = position;
+        }
+
+        fragment.initialize(newPosition, newSize, rotation, rotationSpeed, m_entity.get_sprite().get_tint(), m_entity.get_layer() - 1, m_entity, m_generation + 1);
+        fragments.push_back(fragment);
     }
+
+    return fragments;
 }

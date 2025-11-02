@@ -56,6 +56,17 @@ bool Application::initialize(int width, int height)
     EventSystem::getInstance().subscribe(EventType::GameOver,
         [this](const std::any& data) { showGameOverScreen(); });
 
+    EventSystem::getInstance().subscribe(EventType::PlayerHit,
+        [this](const std::any& data) {
+            try {
+                float damage = std::any_cast<float>(data);
+                m_player.takeDamage(damage);
+            }
+            catch (const std::bad_any_cast&) {
+                m_player.takeDamage(10.0f);
+            }
+        });
+
     std::cout << "Application initialized successfully" << std::endl;
     return true;
 }
@@ -109,6 +120,11 @@ void Application::processInput()
     if (IsKeyDown(KEY_SPACE))
     {
         m_player.shoot();
+    }
+
+    if (IsKeyPressed(KEY_LEFT_SHIFT) || IsKeyPressed(KEY_RIGHT_SHIFT))
+    {
+        performHyperspaceJump();
     }
 
     // Switch debugging display
@@ -302,6 +318,17 @@ void Application::collectRenderCommands()
     spriteCmd.size = m_player.getEntity().get_transform().size;
     m_renderCommands.push_back(spriteCmd);
 
+    if (m_player.getShieldStrength() > 0) {
+        RenderCommand shieldCmd;
+        shieldCmd.type = RenderCommandType::Sprite;
+        shieldCmd.layer = 11;
+        shieldCmd.sprite = &m_player.getShieldSprite();
+        shieldCmd.transform = &m_player.getShieldTransform();
+        shieldCmd.rotation = m_player.getEntity().get_transform().rotation;
+        shieldCmd.size = m_player.getShieldSize();
+        m_renderCommands.push_back(shieldCmd);
+    }
+
     // Sort rendering commands by hierarchy
     std::sort(m_renderCommands.begin(), m_renderCommands.end(),
         [](const RenderCommand& a, const RenderCommand& b) {
@@ -389,6 +416,9 @@ void Application::renderGame()
         }
     }
 
+    DrawText(TextFormat("Score: %d", m_scoreSystem.getScore()), m_width / 2 - 50, 10, 20, RED); // Score display
+    DrawText(TextFormat("Shield: %.0f/%.0f", m_player.getShieldStrength(), m_player.getMaxShieldStrength()), m_width / 2 + 200, 10, 20, BLUE);
+
     // Rendering and debugging information
     if (m_showDebug)
     {
@@ -422,10 +452,8 @@ void Application::renderDebugInfo()
         m_player.getPosition().x,
         m_player.getPosition().y), 10, 60, 20, GRAY);
 
-    DrawText(TextFormat("Score: %d", m_scoreSystem.getScore()), m_width / 2 - 50, 10, 20, RED); // Score display
-
     // Display control prompts
-    DrawText("Controls: W/UP - Thrust, A/D/LEFT/RIGHT - Rotate, SPACE - Shoot, F1 - Toggle Debug", 10, m_height - 30, 20, GRAY);
+    DrawText("Controls: W/UP - Thrust, A/D/LEFT/RIGHT - Rotate, SPACE - Shoot, SHIFT - Jump, F1 - Toggle Debug", 10, m_height - 30, 20, GRAY);
 }
 
 void Application::startGame() {
@@ -447,6 +475,7 @@ void Application::restartGame() {
 }
 
 void Application::returnToMainMenu() {
+    m_mainMenu.updateConfig();
     m_currentState = GameState::MainMenu;
 }
 
@@ -457,4 +486,45 @@ void Application::showGameOverScreen() {
 
 void Application::exitGame() {
     CloseWindow();
+}
+
+void Application::performHyperspaceJump() {
+    for (int attempt = 0; attempt < 10; attempt++) {
+        Vector2 newPosition = {
+            MathUtils::random(200.0f, m_worldSize.x - 200.0f),
+            MathUtils::random(200.0f, m_worldSize.y - 200.0f)
+        };
+
+        if (isPositionSafe(newPosition)) {
+            m_player.hyperspaceJump(newPosition);
+            return;
+        }
+    }
+
+    Vector2 fallbackPosition = {
+        MathUtils::random(200.0f, m_worldSize.x - 200.0f),
+        MathUtils::random(200.0f, m_worldSize.y - 200.0f)
+    };
+    m_player.hyperspaceJump(fallbackPosition);
+}
+
+bool Application::isPositionSafe(Vector2 position) {
+    float safeRadius = 50.0f;
+    Rectangle safeArea = {
+        position.x - safeRadius,
+        position.y - safeRadius,
+        safeRadius * 2,
+        safeRadius * 2
+    };
+    auto visibleAsteroids = m_grid.getVisibleAsteroids(safeArea);
+    for (const auto& asteroid : visibleAsteroids) {
+        if (asteroid->shouldRemove()) continue;
+
+        Rectangle asteroidRect = asteroid->getCollisionRect();
+        if (CheckCollisionRecs(asteroidRect, safeArea)) {
+            return false;
+        }
+    }
+
+    return true;
 }

@@ -20,7 +20,7 @@ public:
     void updateAsteroids();
     
     std::vector<const Asteroid*> getVisibleAsteroids(const Rectangle& frustum) const;
-    void shrinkAsteroid(Asteroid* asteroid);
+    void splitAsteroid(Asteroid* asteroid);
     void removeMarkedAsteroids();
     void onCollision(const std::any& data);
     void reset();

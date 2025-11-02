@@ -1,4 +1,5 @@
 // score_system.hpp
+
 #pragma once
 #include "event_system.hpp"
 #include "event_types.hpp"
@@ -25,7 +26,7 @@ private:
 
             // std::cout << "Score: +" << destroyedData.scoreValue << " (Total: " << m_score << ")" << std::endl;
 
-            // 发布分数更新事件
+            // Publish score update event
             EventSystem::getInstance().publish(EventType::ScoreChanged,
                 ScoreChangedData(m_score, destroyedData.scoreValue));
         }

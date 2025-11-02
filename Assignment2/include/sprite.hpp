@@ -1,4 +1,5 @@
 // sprite.hpp
+
 #pragma once
 #include "texture_manager.hpp"
 #include <raylib.h>

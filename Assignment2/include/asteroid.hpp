@@ -10,8 +10,8 @@ public:
     void initialize(Vector2 position, Vector2 size, float rotation, float rotationSpeed, Color color, int layer, Entity entity, int generation = 0);
     void update();
     Rectangle getCollisionRect() const;
-    bool canShrink() const { return m_generation < MAX_GENERATIONS; }
-    void shrink();
+    bool canSplit() const { return m_generation < MAX_GENERATIONS; }
+    std::vector<Asteroid> split();
     int getGeneration() const { return m_generation; }
     bool shouldRemove() const { return m_shouldRemove; }
     void markForRemoval() { m_shouldRemove = true; }
@@ -22,5 +22,5 @@ private:
     float rotationSpeed;
     int m_generation = 0;
     bool m_shouldRemove = false;
-    static const int MAX_GENERATIONS = 3;
+    static const int MAX_GENERATIONS = 2;
 };

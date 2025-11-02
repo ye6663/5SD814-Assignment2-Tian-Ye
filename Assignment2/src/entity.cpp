@@ -1,4 +1,5 @@
 // entity.cpp
+
 #include "entity.hpp"
 
 Entity::Entity() {

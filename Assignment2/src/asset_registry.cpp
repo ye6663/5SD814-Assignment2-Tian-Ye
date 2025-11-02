@@ -1,4 +1,5 @@
 // asset_registry.cpp
+
 #include "asset_registry.hpp"
 #include "hash.hpp"
 #include "filesystem.hpp"

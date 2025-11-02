@@ -1,4 +1,5 @@
 // gameplay_system.hpp
+
 #pragma once
 #include "event_system.hpp"
 #include "event_types.hpp"
@@ -20,9 +21,6 @@ public:
 
 private:
     void onGameStart() {
-        m_playerLives = 10;
-        m_playerShields = 0;
-        m_isGameOver = false;
     }
 
     void onCollision(const std::any& data) {
@@ -75,12 +73,44 @@ private:
 
     void handlePlayerAsteroidCollision(const CollisionData& collisionData) {
         // std::cout << "Gameplay: Player hit asteroid!" << std::endl;
-        if (m_isGameOver) {
-            return;
-        }
+        try {
+            double currentTime = GetTime();
+            if (!m_canTakeDamage) {
+                if (currentTime - m_lastHitTime >= HIT_COOLDOWN) {
+                    m_canTakeDamage = true;
+                }
+                else {
+                    return;
+                }
+            }
 
-        EventSystem::getInstance().publish(EventType::PlayerHit);
-        playerHit();
+            Player* player = nullptr;
+            Asteroid* asteroid = nullptr;
+            if (collisionData.entityA == EntityType::Player) {
+                player = static_cast<Player*>(collisionData.dataA);
+                asteroid = static_cast<Asteroid*>(collisionData.dataB);
+            }
+            else {
+                player = static_cast<Player*>(collisionData.dataB);
+                asteroid = static_cast<Asteroid*>(collisionData.dataA);
+            }
+
+            if (player && asteroid) {
+                if (player->getShieldStrength() > 0) {
+                    int asteroidSize = determineAsteroidSize(*asteroid);
+                    int scoreValue = calculateScore(asteroidSize);
+                    EventSystem::getInstance().publish(EventType::AsteroidDestroyed, AsteroidDestroyedData(asteroid->getEntity().get_transform().position, asteroidSize, scoreValue));
+                }
+                EventSystem::getInstance().publish(EventType::PlayerHit, 20.0f);
+            }
+
+            // EventSystem::getInstance().publish(EventType::PlayerHit, 20.0f);
+            m_canTakeDamage = false;
+            m_lastHitTime = currentTime;
+        }
+        catch (const std::bad_any_cast&) {
+            std::cout << "GameplaySystem: Invalid player hit data" << std::endl;
+        }
     }
 
     int determineAsteroidSize(const Asteroid& asteroid) {
@@ -101,39 +131,7 @@ private:
         }
     }
 
-    void playerHit() {
-        try {
-            if (m_isGameOver) {
-                return;
-            }
-            if (m_playerShields > 0) {
-                // 先扣除护盾
-                m_playerShields -=  10; // 假设1点伤害扣除10点护盾
-                if (m_playerShields < 0) m_playerShields = 0;
-
-                // std::cout << "Player shield hit! Remaining: " << m_playerShields << std::endl;
-            }
-            else {
-                // 护盾为0时扣除生命
-                m_playerLives -= 10;
-                std::cout << "Player hit! Lives remaining: " << m_playerLives << std::endl;
-
-                if (m_playerLives <= 0) {
-                    m_playerLives = 0;
-                    m_isGameOver = true;
-                    std::cout << "Game Over!" << std::endl;
-
-                    // 发布游戏结束事件
-                    EventSystem::getInstance().publish(EventType::GameOver);
-                }
-            }
-        }
-        catch (const std::bad_any_cast&) {
-            std::cout << "GameplaySystem: Invalid player hit data" << std::endl;
-        }
-    }
-
-    int m_playerLives = 10;
-    int m_playerShields = 0;
-    bool m_isGameOver = false;
+    double m_lastHitTime = 0.0;
+    const double HIT_COOLDOWN = 1.0;
+    bool m_canTakeDamage = true;
 };

@@ -69,4 +69,7 @@ private:
     void exitGame();
 
     TextureManager m_textureManager;
+
+    void performHyperspaceJump();
+    bool isPositionSafe(Vector2 position);
 };

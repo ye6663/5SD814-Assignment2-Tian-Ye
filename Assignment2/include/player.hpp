@@ -26,6 +26,18 @@ public:
     Vector2 getSize() const { return m_entity.get_transform().size; }
     std::vector<Bullet>& getBullets() { return m_bullets; }
     Rectangle getCollisionRect() const;
+
+    const Entity& getShieldEntity() const { return m_shield_entity; }
+    const Sprite& getShieldSprite() const { return m_shield_entity.get_sprite(); }
+    const transform& getShieldTransform() const { return m_shield_entity.get_transform(); }
+    Vector2 getShieldSize() const { return m_shield_entity.get_transform().size; }
+    float getShieldStrength() const { return m_shieldStrength; }
+    float getMaxShieldStrength() const { return m_maxShieldStrength; }
+    void takeDamage(float damage);
+    void updateShield();
+
+    void hyperspaceJump(Vector2 newPosition);
+
     Entity& getEntity() { return m_entity; }
     
 private:
@@ -48,4 +60,15 @@ private:
     Texture2D m_bullet_texture;
     double m_lastShotTime = 0.0;
     std::vector<Bullet> m_bullets;
+
+    // Shield related
+    float m_shieldStrength = 0.0f;
+    float m_maxShieldStrength = 100.0f;
+    float m_shieldRegenRate = 10.0f; // Restore 10 shield points per second
+    double m_lastHitTime = 0.0;
+    const double SHIELD_REGEN_DELAY = 3.0; // Recovery starts 3 seconds after injury
+    Entity m_shield_entity; // Shield Elf Entity
+
+    double m_lastJumpTime = 0.0;
+    const double JUMP_COOLDOWN = 1.5;
 };

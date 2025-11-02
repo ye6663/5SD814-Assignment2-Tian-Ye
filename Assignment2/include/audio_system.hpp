@@ -1,4 +1,5 @@
 // audio_system.hpp
+
 #pragma once
 #include "event_system.hpp"
 #include "event_types.hpp"
@@ -8,13 +9,13 @@
 class AudioSystem {
 public:
     void initialize() {
-        // 初始化音频设备
+        // Initialize audio device
         InitAudioDevice();
 
-        // 加载声音文件
+        // Load sound file
         loadSounds();
 
-        // 订阅相关事件
+        // Subscription related events
         EventSystem::getInstance().subscribe(EventType::Collision,
             [this](const std::any& data) { onCollision(data); });
 
@@ -24,20 +25,26 @@ public:
         EventSystem::getInstance().subscribe(EventType::AsteroidDestroyed,
             [this](const std::any& data) { onAsteroidDestroyed(data); });
 
-        EventSystem::getInstance().subscribe(EventType::PlayerHit,
-            [this](const std::any& data) { onPlayerHit(data); });
+        EventSystem::getInstance().subscribe(EventType::CollisionAsteroid,
+            [this](const std::any& data) { onCollisionAsteroid(data); });
+
+        EventSystem::getInstance().subscribe(EventType::HyperspaceJump,
+            [this](const std::any& data) { onHyperspaceJump(data); });
+
+        EventSystem::getInstance().subscribe(EventType::GameOver,
+            [this](const std::any& data) { onGameOver(data); });
 
         std::cout << "AudioSystem initialized" << std::endl;
     }
 
     void shutdown() {
-        // 卸载所有声音
+        // Uninstall all sounds
         for (auto& sound : m_sounds) {
             UnloadSound(sound.second);
         }
         m_sounds.clear();
 
-        // 关闭音频设备
+        // Turn off audio devices
         CloseAudioDevice();
     }
 
@@ -54,17 +61,17 @@ public:
 
 private:
     void loadSounds() {
-        // 尝试加载各种音效
         loadSound("shoot", "assets/shoot.wav");
         loadSound("asteroid_explosion", "assets/asteroid_explosion.wav");
+        loadSound("collision_asteroid", "assets/collision_asteroid.wav");
         loadSound("player_hit", "assets/player_hit.wav");
-        //loadSound("bullet_hit", "assets/bullet_hit.wav");
+        loadSound("hyperspace_jump", "assets/hyperspace_jump.wav");
 
-        // 设置默认音量
+        // Set default volume
         setSoundVolume("shoot", 0.7f);
         setSoundVolume("asteroid_explosion", 0.8f);
         setSoundVolume("player_hit", 0.9f);
-        //setSoundVolume("bullet_hit", 0.5f);
+        setSoundVolume("hyperspace_jump", 3.0f);
     }
 
     void loadSound(const std::string& name, const std::string& filepath) {
@@ -92,7 +99,7 @@ private:
         try {
             auto collisionData = std::any_cast<CollisionData>(data);
 
-            // 根据碰撞类型播放不同音效
+            // Play different sound effects based on collision type
             if (collisionData.entityA == EntityType::Bullet &&
                 collisionData.entityB == EntityType::Asteroid) {
                 // std::cout << "Audio: Playing bullet hit asteroid sound" << std::endl;
@@ -125,7 +132,15 @@ private:
         }
     }
 
-    void onPlayerHit(const std::any& data) {
+    void onCollisionAsteroid(const std::any& data) {
+        // playSound("collision_asteroid");
+    }
+
+    void onHyperspaceJump(const std::any& data) {
+        playSound("hyperspace_jump");
+    }
+
+    void onGameOver(const std::any& data) {
         playSound("player_hit");
     }
 

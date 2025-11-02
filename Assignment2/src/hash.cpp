@@ -1,4 +1,5 @@
 // hash.cpp
+
 #include "hash.hpp"
 #include <cstdint>
 

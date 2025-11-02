@@ -1,4 +1,5 @@
 // hash.hpp
+
 #pragma once
 #include <string_view>
 #include <cstdint>
