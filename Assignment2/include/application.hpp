@@ -72,4 +72,8 @@ private:
 
     void performHyperspaceJump();
     bool isPositionSafe(Vector2 position);
+
+    void checkLaserCollisions();
+    bool checkLaserAsteroidCollision(Vector2 laserStart, Vector2 laserEnd, const Asteroid& asteroid);
+    void renderLaser();
 };

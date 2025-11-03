@@ -38,6 +38,26 @@ public:
 
     void hyperspaceJump(Vector2 newPosition);
 
+    void fireLaser();
+    bool isLaserActive() const { return m_laserActive; }
+    float getLaserRemainingTime() const { return m_laserRemainingTime; }
+    //Vector2 getLaserStart() const { return m_entity.get_transform().position; }
+    Vector2 getLaserStart() const {
+        Vector2 position = m_entity.get_transform().position;
+        float rotation = m_entity.get_transform().rotation;
+        Vector2 direction = { cosf(rotation), sinf(rotation) };
+        float headOffset = m_entity.get_transform().size.y * 0.5f;
+        return {
+            position.x + direction.x * headOffset,
+            position.y + direction.y * headOffset
+        };
+    }
+    Vector2 getLaserDirection() const {
+        float rotation = m_entity.get_transform().rotation;
+        return { cosf(rotation), sinf(rotation) };
+    }
+    float getLaserRange() const { return LASER_RANGE; }
+
     Entity& getEntity() { return m_entity; }
     
 private:
@@ -71,4 +91,12 @@ private:
 
     double m_lastJumpTime = 0.0;
     const double JUMP_COOLDOWN = 1.5;
+
+    // Laser related
+    bool m_laserActive = false;
+    float m_laserRemainingTime = 0.0f;
+    double m_lastLaserTime = 0.0;
+    const float LASER_RANGE = 1000.0f;
+    const float LASER_DURATION = 1.8f;
+    const double LASER_COOLDOWN = 1.0;
 };

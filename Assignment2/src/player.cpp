@@ -102,6 +102,13 @@ void Player::update()
     m_entity.set_position(position);
 
     updateShield();
+
+    if (m_laserActive) {
+        m_laserRemainingTime -= GetFrameTime();
+        if (m_laserRemainingTime <= 0) {
+            m_laserActive = false;
+        }
+    }
 }
 
 void Player::applyThrust()
@@ -219,4 +226,23 @@ void Player::hyperspaceJump(Vector2 newPosition)
     m_lastJumpTime = currentTime;
 
     EventSystem::getInstance().publish(EventType::HyperspaceJump);
+}
+
+void Player::fireLaser()
+{
+    double currentTime = GetTime();
+    if (currentTime - m_lastLaserTime < LASER_COOLDOWN) {
+        return;
+    }
+
+    m_laserActive = true;
+    m_laserRemainingTime = LASER_DURATION;
+    m_lastLaserTime = currentTime;
+    EventSystem::getInstance().publish(EventType::LaserFired,
+        LaserFiredData(
+            m_entity.get_transform().position,
+            getLaserDirection(),
+            LASER_RANGE,
+            LASER_DURATION
+        ));
 }

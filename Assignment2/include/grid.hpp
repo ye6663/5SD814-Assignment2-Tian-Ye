@@ -15,7 +15,7 @@ struct GridCell
 class Grid
 {
 public:
-    void initialize(int width, int height, int cellWidth, int cellHeight, int screen_width, int screen_height, TextureManager& textureManager);
+    void initialize(int width, int height, int cellWidth, int cellHeight, int screen_width, int screen_height, TextureManager& textureManager, Vector2 worldSize);
     void generateAsteroids(int count);
     void updateAsteroids();
     
@@ -29,6 +29,7 @@ public:
     void renderDebug(const GameCamera& camera) const;
     
 private:
+    Vector2 m_worldSize;
     int m_width = 0;
     int m_height = 0;
     int m_cellWidth = 0;
@@ -47,4 +48,6 @@ private:
     TextureManager* m_textureManager;
     Entity m_asteroid1_entity;
     Entity m_asteroid2_entity;
+
+    void moveAsteroidToNewCell(Asteroid* asteroid, const Vector2& oldPosition, const Vector2& newPosition);
 };

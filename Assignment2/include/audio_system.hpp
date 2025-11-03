@@ -31,6 +31,9 @@ public:
         EventSystem::getInstance().subscribe(EventType::HyperspaceJump,
             [this](const std::any& data) { onHyperspaceJump(data); });
 
+        EventSystem::getInstance().subscribe(EventType::LaserFired,
+            [this](const std::any& data) { onLaserFired(data); });
+
         EventSystem::getInstance().subscribe(EventType::GameOver,
             [this](const std::any& data) { onGameOver(data); });
 
@@ -66,12 +69,14 @@ private:
         loadSound("collision_asteroid", "assets/collision_asteroid.wav");
         loadSound("player_hit", "assets/player_hit.wav");
         loadSound("hyperspace_jump", "assets/hyperspace_jump.wav");
+        loadSound("laser", "assets/laser.wav");
 
         // Set default volume
         setSoundVolume("shoot", 0.7f);
         setSoundVolume("asteroid_explosion", 0.8f);
         setSoundVolume("player_hit", 0.9f);
         setSoundVolume("hyperspace_jump", 3.0f);
+        setSoundVolume("laser", 2.0f);
     }
 
     void loadSound(const std::string& name, const std::string& filepath) {
@@ -138,6 +143,10 @@ private:
 
     void onHyperspaceJump(const std::any& data) {
         playSound("hyperspace_jump");
+    }
+
+    void onLaserFired(const std::any& data) {
+        playSound("laser");
     }
 
     void onGameOver(const std::any& data) {

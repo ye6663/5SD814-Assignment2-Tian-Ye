@@ -10,6 +10,7 @@ enum class EventType {
     PlayerHit,
     CollisionAsteroid,
     HyperspaceJump,
+    LaserFired,
     GameStart,
     GameOver,
     ScoreChanged
@@ -60,4 +61,14 @@ struct ScoreChangedData {
 
     ScoreChangedData(int score, int change = 0)
         : newScore(score), scoreChange(change) {}
+};
+
+struct LaserFiredData {
+    Vector2 startPosition;
+    Vector2 direction;
+    float range;
+    float duration;
+
+    LaserFiredData(Vector2 start, Vector2 dir, float rng, float dur)
+        : startPosition(start), direction(dir), range(rng), duration(dur) {}
 };

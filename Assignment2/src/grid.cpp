@@ -8,8 +8,9 @@
 #include <raylib.h>
 #include <iostream>
 
-void Grid::initialize(int width, int height, int cellWidth, int cellHeight, int screen_width, int screen_height, TextureManager& textureManager)
+void Grid::initialize(int width, int height, int cellWidth, int cellHeight, int screen_width, int screen_height, TextureManager& textureManager, Vector2 worldSize)
 {
+    m_worldSize = worldSize;
     m_width = width;
     m_height = height;
     m_cellWidth = cellWidth;
@@ -105,10 +106,10 @@ void Grid::generateAsteroids(int count)
         Color color = { gray, gray, gray, 255 };
 
         if (MathUtils::random(0, 2) < 1.0f) {
-            asteroid.initialize(position, size, rotation, rotationSpeed, color, layer, m_asteroid1_entity, 3 - layer);
+            asteroid.initialize(position, size, rotation, rotationSpeed, color, layer, m_asteroid1_entity, m_worldSize, 3 - layer);
         }
         else {
-            asteroid.initialize(position, size, rotation, rotationSpeed, color, layer, m_asteroid2_entity, 3 - layer);
+            asteroid.initialize(position, size, rotation, rotationSpeed, color, layer, m_asteroid2_entity, m_worldSize, 3 - layer);
         }
 
         // Add to corresponding grid cell
@@ -127,12 +128,35 @@ void Grid::generateAsteroids(int count)
 
 void Grid::updateAsteroids()
 {
+    /*
     for (auto& cell : m_cells)
     {
         for (auto& asteroid : cell.asteroids)
         {
             asteroid.update();
         }
+    }
+    */
+
+    std::vector<std::pair<Asteroid*, Vector2>> asteroidsToMove;
+
+    for (auto& cell : m_cells)
+    {
+        for (auto& asteroid : cell.asteroids)
+        {
+            Vector2 oldPosition = asteroid.getEntity().get_transform().position;
+            asteroid.update();
+            Vector2 newPosition = asteroid.getEntity().get_transform().position;
+
+            if (oldPosition.x != newPosition.x || oldPosition.y != newPosition.y) {
+                asteroidsToMove.push_back({ &asteroid, oldPosition });
+            }
+        }
+    }
+
+    for (auto& [asteroid, oldPosition] : asteroidsToMove) {
+        Vector2 newPosition = asteroid->getEntity().get_transform().position;
+        moveAsteroidToNewCell(asteroid, oldPosition, newPosition);
     }
 }
 
@@ -340,4 +364,35 @@ void Grid::clear()
         cell.asteroids.clear();
     }
     std::cout << "Grid cleared: all asteroids removed" << std::endl;
+}
+
+void Grid::moveAsteroidToNewCell(Asteroid* asteroid, const Vector2& oldPosition, const Vector2& newPosition)
+{
+    int oldGridX, oldGridY;
+    worldToGrid(oldPosition, oldGridX, oldGridY);
+
+    int newGridX, newGridY;
+    worldToGrid(newPosition, newGridX, newGridY);
+
+    if (oldGridX == newGridX && oldGridY == newGridY) {
+        return;
+    }
+
+    int oldIndex = oldGridY * m_width + oldGridX;
+    int newIndex = newGridY * m_width + newGridX;
+
+    if (oldIndex >= 0 && oldIndex < (int)m_cells.size() &&
+        newIndex >= 0 && newIndex < (int)m_cells.size()) {
+
+        auto& oldCell = m_cells[oldIndex];
+        auto& newCell = m_cells[newIndex];
+
+         for (auto it = oldCell.asteroids.begin(); it != oldCell.asteroids.end(); ++it) {
+            if (&(*it) == asteroid) {
+                 newCell.asteroids.push_back(std::move(*it));
+                oldCell.asteroids.erase(it);
+                break;
+            }
+        }
+    }
 }

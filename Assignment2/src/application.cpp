@@ -18,7 +18,7 @@ bool Application::initialize(int width, int height)
     m_worldSize = { 10000, 10000 };
 
     // Initialize World Grid (10x10 sections£¬Each 1000x1000 pixel)
-    m_grid.initialize(10, 10, 1000, 1000, m_width, m_height, m_textureManager);
+    m_grid.initialize(10, 10, 1000, 1000, m_width, m_height, m_textureManager, m_worldSize);
 
     // Generate 2000 asteroids
     m_totalAsteroids = 2000;
@@ -98,6 +98,8 @@ void Application::update()
             // Update bullets
             updateBullets();
 
+            checkLaserCollisions();
+
             // Collect rendering commands
             collectRenderCommands();
             break;
@@ -125,6 +127,11 @@ void Application::processInput()
     if (IsKeyPressed(KEY_LEFT_SHIFT) || IsKeyPressed(KEY_RIGHT_SHIFT))
     {
         performHyperspaceJump();
+    }
+
+    if (IsKeyPressed(KEY_LEFT_ALT) || IsKeyPressed(KEY_RIGHT_ALT))
+    {
+        m_player.fireLaser();
     }
 
     // Switch debugging display
@@ -416,6 +423,10 @@ void Application::renderGame()
         }
     }
 
+    if (m_player.isLaserActive()) {
+        renderLaser();
+    }
+
     DrawText(TextFormat("Score: %d", m_scoreSystem.getScore()), m_width / 2 - 50, 10, 20, RED); // Score display
     DrawText(TextFormat("Shield: %.0f/%.0f", m_player.getShieldStrength(), m_player.getMaxShieldStrength()), m_width / 2 + 200, 10, 20, BLUE);
 
@@ -453,7 +464,7 @@ void Application::renderDebugInfo()
         m_player.getPosition().y), 10, 60, 20, GRAY);
 
     // Display control prompts
-    DrawText("Controls: W/UP - Thrust, A/D/LEFT/RIGHT - Rotate, SPACE - Shoot, SHIFT - Jump, F1 - Toggle Debug", 10, m_height - 30, 20, GRAY);
+    DrawText("Controls: W/UP - Thrust, A/D/LEFT/RIGHT - Rotate, SPACE - Shoot, SHIFT - Jump, ALT - Laser, F1 - Toggle Debug", 10, m_height - 30, 20, GRAY);
 }
 
 void Application::startGame() {
@@ -527,4 +538,114 @@ bool Application::isPositionSafe(Vector2 position) {
     }
 
     return true;
+}
+
+void Application::checkLaserCollisions() {
+    if (!m_player.isLaserActive()) return;
+
+    Vector2 laserStart = m_player.getLaserStart();
+    Vector2 laserDir = m_player.getLaserDirection();
+    float laserRange = m_player.getLaserRange();
+    Vector2 laserEnd = {
+        laserStart.x + laserDir.x * laserRange,
+        laserStart.y + laserDir.y * laserRange
+    };
+
+    Rectangle frustum = m_camera.getFrustum();
+    auto visibleAsteroids = m_grid.getVisibleAsteroids(frustum);
+
+    for (const auto& asteroid : visibleAsteroids) {
+        if (asteroid->shouldRemove()) continue;
+
+        if (checkLaserAsteroidCollision(laserStart, laserEnd, *asteroid)) {
+            // Publish collision events
+            CollisionData collisionData(
+                EntityType::Bullet,
+                EntityType::Asteroid,
+                asteroid->getEntity().get_transform().position,
+                (void*)&(*asteroid),
+                (void*)&(*asteroid)
+            );
+            EventSystem::getInstance().publish(EventType::Collision, collisionData);
+
+            // break;
+        }
+    }
+
+    m_grid.removeMarkedAsteroids();
+}
+
+bool Application::checkLaserAsteroidCollision(Vector2 laserStart, Vector2 laserEnd, const Asteroid& asteroid) {
+    Rectangle asteroidRect = asteroid.getCollisionRect();
+    Vector2 rectCenter = {
+        asteroidRect.x + asteroidRect.width / 2,
+        asteroidRect.y + asteroidRect.height / 2
+    };
+    float rectRadius = (asteroidRect.width + asteroidRect.height) / 4;
+    return CheckCollisionCircleLine(rectCenter, rectRadius, laserStart, laserEnd);
+}
+
+void Application::renderLaser() {
+    Vector2 laserStart = m_player.getLaserStart();
+    Vector2 laserDir = m_player.getLaserDirection();
+    float laserRange = m_player.getLaserRange();
+    Vector2 laserEnd = {
+        laserStart.x + laserDir.x * laserRange,
+        laserStart.y + laserDir.y * laserRange
+    };
+
+    Vector2 cameraPos = m_camera.getPosition();
+    Vector2 viewportSize = m_camera.getViewportSize();
+    Rectangle cameraFrame = m_camera.getCameraFrame();
+
+    float scaleX = cameraFrame.width / viewportSize.x;
+    float scaleY = cameraFrame.height / viewportSize.y;
+
+    Vector2 screenStart = {
+        cameraFrame.x + (laserStart.x - cameraPos.x + viewportSize.x / 2) * scaleX,
+        cameraFrame.y + (laserStart.y - cameraPos.y + viewportSize.y / 2) * scaleY
+    };
+
+    Vector2 screenEnd = {
+        cameraFrame.x + (laserEnd.x - cameraPos.x + viewportSize.x / 2) * scaleX,
+        cameraFrame.y + (laserEnd.y - cameraPos.y + viewportSize.y / 2) * scaleY
+    };
+
+    float time = (float)GetTime();
+    float pulse = sinf(time * 30.0f) * 0.5f + 0.5f;
+
+    // 1. Blue Energy Core
+    DrawLineEx(screenStart, screenEnd, 3.0f, { 50, 150, 255, 255 });
+
+    // 2. White highlight
+    DrawLineEx(screenStart, screenEnd, 6.0f, { 200, 230, 255, 180 });
+
+    // 3. Purple halo
+    DrawLineEx(screenStart, screenEnd, 12.0f, { 150, 50, 255, (unsigned char)(100 + 50 * pulse) });
+
+    // 4. Outer blue halo
+    DrawLineEx(screenStart, screenEnd, 18.0f, { 50, 100, 255, (unsigned char)(50 + 25 * pulse) });
+
+    // Starting point - energy focus point
+    for (int i = 0; i < 3; i++) {
+        float radius = 10.0f - i * 3.0f + 2.0f * pulse;
+        Color ringColor = (i == 0) ? Color(255, 255, 255, 200) : (i == 1) ? Color(100, 200, 255, 150) : Color(50, 100, 255, 100);
+        DrawRing(screenStart, radius - 1.0f, radius + 1.0f, 0, 360, 36, ringColor);
+    }
+
+    // Endpoint - Energy Diffusion
+    float endGlow = 6.0f + 3.0f * pulse;
+    DrawCircleV(screenEnd, endGlow, { 100, 200, 255, 150 });
+    DrawCircleV(screenEnd, endGlow * 0.6f, { 255, 255, 255, 200 });
+
+    // Energy particle effect
+    for (int i = 0; i < 5; i++) {
+        float t = fmod(time * 2.0f + i * 0.2f, 1.0f);
+        Vector2 particlePos = {
+            screenStart.x + (screenEnd.x - screenStart.x) * t,
+            screenStart.y + (screenEnd.y - screenStart.y) * t
+        };
+        float size = 2.0f + 1.0f * sinf(time * 20.0f + i);
+        DrawCircleV(particlePos, size, { 255, 255, 255, 200 });
+    }
 }
