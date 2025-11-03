@@ -17,4 +17,4 @@
   texture_manager.cpp
   transform.cpp
 LINK : warning LNK4098: 默认库“LIBCMT”与其他库的使用冲突；请使用 /NODEFAULTLIB:library
-  Assignment2.vcxproj -> C:\Users\paulo\Desktop\5SD814-Assignment2-Tian-Ye\build\Assignment2.debug.exe
+  Assignment2.vcxproj -> D:\VsWorkspace\Assignment2\build\Assignment2.debug.exe
